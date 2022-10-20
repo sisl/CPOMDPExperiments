@@ -1,0 +1,4 @@
+name = "CPOMCP"
+uuid = "5fad2965-aed9-44a7-b7f0-8ea54a209f0a"
+authors = ["Arec Jamgochian <jamgochian95@gmail.com>"]
+version = "0.1.0"

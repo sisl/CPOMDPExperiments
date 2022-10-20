@@ -1,0 +1,4 @@
+name = "CMCTS"
+uuid = "ff16bef5-90ca-4cd7-8044-bbffdeb5f989"
+authors = ["Arec Jamgochian <jamgochian95@gmail.com>"]
+version = "0.1.0"

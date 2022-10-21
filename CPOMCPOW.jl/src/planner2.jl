@@ -1,4 +1,4 @@
-mutable struct POMCPOWPlanner{P,NBU,C,NA,SE,IN,IV,SolverType} <: Policy
+mutable struct CPOMCPOWPlanner{P,NBU,C,NA,SE,IN,IV,SolverType} <: Policy
     solver::SolverType
     problem::P
     node_sr_belief_updater::NBU
@@ -7,11 +7,11 @@ mutable struct POMCPOWPlanner{P,NBU,C,NA,SE,IN,IV,SolverType} <: Policy
     solved_estimate::SE
     init_N::IN
     init_V::IV
-    tree::Union{Nothing, POMCPOWTree} # this is just so you can look at the tree later
+    tree::Union{Nothing, CPOMCPOWTree} # this is just so you can look at the tree later
 end
 
-function POMCPOWPlanner(solver, problem::POMDP)
-    POMCPOWPlanner(solver,
+function CPOMCPOWPlanner(solver, problem::POMDP)
+    CPOMCPOWPlanner(solver,
                   problem,
                   solver.node_sr_belief_updater,
                   solver.criterion,
@@ -22,9 +22,9 @@ function POMCPOWPlanner(solver, problem::POMDP)
                   nothing)
 end
 
-Random.seed!(p::POMCPOWPlanner, seed) = Random.seed!(p.solver.rng, seed)
+Random.seed!(p::CPOMCPOWPlanner, seed) = Random.seed!(p.solver.rng, seed)
 
-function action_info(pomcp::POMCPOWPlanner{P,NBU}, b; tree_in_info=false) where {P,NBU}
+function action_info(pomcp::CPOMCPOWPlanner{P,NBU}, b; tree_in_info=false) where {P,NBU}
     A = actiontype(P)
     info = Dict{Symbol, Any}()
     tree = make_tree(pomcp, b)
@@ -41,9 +41,9 @@ function action_info(pomcp::POMCPOWPlanner{P,NBU}, b; tree_in_info=false) where 
     return a, info
 end
 
-action(pomcp::POMCPOWPlanner, b) = first(action_info(pomcp, b))
+action(pomcp::CPOMCPOWPlanner, b) = first(action_info(pomcp, b))
 
-function POMDPPolicies.actionvalues(p::POMCPOWPlanner, b)
+function POMDPPolicies.actionvalues(p::CPOMCPOWPlanner, b)
     tree = make_tree(p, b)
     search(p, tree)
     values = Vector{Union{Float64,Missing}}(missing, length(actions(p.problem)))
@@ -54,17 +54,17 @@ function POMDPPolicies.actionvalues(p::POMCPOWPlanner, b)
     return values
 end
 
-function make_tree(p::POMCPOWPlanner{P, NBU}, b) where {P, NBU}
+function make_tree(p::CPOMCPOWPlanner{P, NBU}, b) where {P, NBU}
     S = statetype(P)
     A = actiontype(P)
     O = obstype(P)
     B = belief_type(NBU,P)
-    return POMCPOWTree{B, A, O, typeof(b)}(b, 2*min(100_000, p.solver.tree_queries))
-    # return POMCPOWTree{B, A, O, typeof(b)}(b, 2*p.solver.tree_queries)
+    return CPOMCPOWTree{B, A, O, typeof(b)}(b, 2*min(100_000, p.solver.tree_queries))
+    # return CPOMCPOWTree{B, A, O, typeof(b)}(b, 2*p.solver.tree_queries)
 end
 
 
-function search(pomcp::POMCPOWPlanner, tree::POMCPOWTree, info::Dict{Symbol,Any}=Dict{Symbol,Any}())
+function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,Any}=Dict{Symbol,Any}())
     timer = pomcp.solver.timer
     all_terminal = true
     # gc_enable(false)

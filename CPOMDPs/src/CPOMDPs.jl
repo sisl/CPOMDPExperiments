@@ -1,5 +1,5 @@
 module CPOMDPs
 
-greet() = print("Hello World!")
+using POMDPs
 
 end # module

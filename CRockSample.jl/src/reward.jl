@@ -1,4 +1,4 @@
-function POMDPs.reward(pomdp::RockSamplePOMDP, s::RSState, a::Int)
+function POMDPs.reward(pomdp::RockSampleCPOMDP, s::RSState, a::Int)
     r = pomdp.step_penalty
     if next_position(s, a)[1] > pomdp.map_size[1]
         r += pomdp.exit_reward

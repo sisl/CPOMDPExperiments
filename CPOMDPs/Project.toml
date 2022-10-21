@@ -2,3 +2,6 @@ name = "CPOMDPs"
 uuid = "b333230a-c79e-4dbf-bcff-ea8d21aa5ebd"
 authors = ["Arec Jamgochian <jamgochian95@gmail.com>"]
 version = "0.1.0"
+
+[deps]
+POMDPs = "a93abf59-7444-517b-a68a-c42f96afdd7d"

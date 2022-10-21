@@ -1,8 +1,8 @@
-function POMDPTools.action_info(p::POMCPPlanner, b; tree_in_info=false)
+function POMDPTools.action_info(p::CPOMCPPlanner, b; tree_in_info=false)
     local a::actiontype(p.problem)
     info = Dict{Symbol, Any}()
     try
-        tree = POMCPTree(p.problem, b, p.solver.tree_queries)
+        tree = CPOMCPTree(p.problem, b, p.solver.tree_queries)
         a = search(p, b, tree, info)
         p._tree = tree
         if p.solver.tree_in_info || tree_in_info
@@ -16,9 +16,9 @@ function POMDPTools.action_info(p::POMCPPlanner, b; tree_in_info=false)
     return a, info
 end
 
-action(p::POMCPPlanner, b) = first(action_info(p, b))
+action(p::CPOMCPPlanner, b) = first(action_info(p, b))
 
-function search(p::POMCPPlanner, b, t::POMCPTree, info::Dict)
+function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     all_terminal = true
     nquery = 0
     start_us = CPUtime_us()
@@ -29,7 +29,7 @@ function search(p::POMCPPlanner, b, t::POMCPTree, info::Dict)
         end
         s = rand(p.rng, b)
         if !POMDPs.isterminal(p.problem, s)
-            simulate(p, s, POMCPObsNode(t, 1), p.solver.max_depth)
+            simulate(p, s, CPOMCPObsNode(t, 1), p.solver.max_depth)
             all_terminal = false
         end
     end
@@ -54,9 +54,9 @@ function search(p::POMCPPlanner, b, t::POMCPTree, info::Dict)
     return t.a_labels[best_node]
 end
 
-solve(solver::POMCPSolver, pomdp::POMDP) = POMCPPlanner(solver, pomdp)
+solve(solver::CPOMCPSolver, pomdp::POMDP) = CPOMCPPlanner(solver, pomdp)
 
-function simulate(p::POMCPPlanner, s, hnode::POMCPObsNode, steps::Int)
+function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     if steps == 0 || isterminal(p.problem, s)
         return 0.0
     end
@@ -95,11 +95,11 @@ function simulate(p::POMCPPlanner, s, hnode::POMCPObsNode, steps::Int)
         v = estimate_value(p.solved_estimator,
                            p.problem,
                            sp,
-                           POMCPObsNode(t, hao),
+                           CPOMCPObsNode(t, hao),
                            steps-1)
         R = r + discount(p.problem)*v
     else
-        R = r + discount(p.problem)*simulate(p, sp, POMCPObsNode(t, hao), steps-1)
+        R = r + discount(p.problem)*simulate(p, sp, CPOMCPObsNode(t, hao), steps-1)
     end
 
     t.total_n[h] += 1

@@ -1,5 +1,5 @@
 """
-MCTS solver with DPW
+CMCTS solver with DPW
 
 Fields:
 
@@ -100,7 +100,7 @@ Fields:
     timer::Function:
         Timekeeping method. Search iterations ended when `timer() - start_time ≥ max_time`.
 """
-mutable struct DPWSolver <: AbstractMCTSSolver
+mutable struct CDPWSolver <: AbstractCMCTSSolver
     depth::Int
     exploration_constant::Float64
     n_iterations::Int
@@ -127,11 +127,11 @@ mutable struct DPWSolver <: AbstractMCTSSolver
 end
 
 """
-    DPWSolver()
+    CDPWSolver()
 
 Use keyword arguments to specify values for the fields
 """
-function DPWSolver(;depth::Int=10,
+function CDPWSolver(;depth::Int=10,
                     exploration_constant::Float64=1.0,
                     n_iterations::Int=100,
                     max_time::Float64=Inf,
@@ -154,7 +154,7 @@ function DPWSolver(;depth::Int=10,
                     reset_callback::Function=(mdp, s) -> false,
                     show_progress::Bool=false,
                     timer=() -> 1e-9 * time_ns())
-    DPWSolver(depth, exploration_constant, n_iterations, max_time, k_action, alpha_action, k_state, alpha_state, keep_tree, enable_action_pw, enable_state_pw, check_repeat_state, check_repeat_action, tree_in_info, rng, estimate_value, init_Q, init_N, next_action, default_action, reset_callback, show_progress, timer)
+    CDPWSolver(depth, exploration_constant, n_iterations, max_time, k_action, alpha_action, k_state, alpha_state, keep_tree, enable_action_pw, enable_state_pw, check_repeat_state, check_repeat_action, tree_in_info, rng, estimate_value, init_Q, init_N, next_action, default_action, reset_callback, show_progress, timer)
 end
 
 #=
@@ -178,7 +178,7 @@ mutable struct DPWStateNode{S,A} <: AbstractStateNode
 end
 =#
 
-mutable struct DPWTree{S,A}
+mutable struct CDPWTree{S,A}
     # for each state node
     total_n::Vector{Int}
     children::Vector{Vector{Int}}
@@ -197,7 +197,7 @@ mutable struct DPWTree{S,A}
     unique_transitions::Set{Tuple{Int,Int}}
 
 
-    function DPWTree{S,A}(sz::Int=1000) where {S,A} 
+    function CDPWTree{S,A}(sz::Int=1000) where {S,A} 
         sz = min(sz, 100_000)
         return new(sizehint!(Int[], sz),
                    sizehint!(Vector{Int}[], sz),
@@ -217,7 +217,7 @@ mutable struct DPWTree{S,A}
 end
 
 
-function insert_state_node!(tree::DPWTree{S,A}, s::S, maintain_s_lookup=true) where {S,A}
+function insert_state_node!(tree::CDPWTree{S,A}, s::S, maintain_s_lookup=true) where {S,A}
     push!(tree.total_n, 0)
     push!(tree.children, Int[])
     push!(tree.s_labels, s)
@@ -229,7 +229,7 @@ function insert_state_node!(tree::DPWTree{S,A}, s::S, maintain_s_lookup=true) wh
 end
 
 
-function insert_action_node!(tree::DPWTree{S,A}, snode::Int, a::A, n0::Int, q0::Float64, maintain_a_lookup=true) where {S,A}
+function insert_action_node!(tree::CDPWTree{S,A}, snode::Int, a::A, n0::Int, q0::Float64, maintain_a_lookup=true) where {S,A}
     push!(tree.n, n0)
     push!(tree.q, q0)
     push!(tree.a_labels, a)
@@ -243,10 +243,10 @@ function insert_action_node!(tree::DPWTree{S,A}, snode::Int, a::A, n0::Int, q0::
     return sanode
 end
 
-Base.isempty(tree::DPWTree) = isempty(tree.n) && isempty(tree.q)
+Base.isempty(tree::CDPWTree) = isempty(tree.n) && isempty(tree.q)
 
 struct DPWStateNode{S,A} <: AbstractStateNode
-    tree::DPWTree{S,A}
+    tree::CDPWTree{S,A}
     index::Int
 end
 
@@ -255,10 +255,10 @@ n_children(n::DPWStateNode) = length(children(n))
 isroot(n::DPWStateNode) = n.index == 1
 
 
-mutable struct DPWPlanner{P<:Union{MDP,POMDP}, S, A, SE, NA, RCB, RNG} <: AbstractMCTSPlanner{P}
-    solver::DPWSolver
+mutable struct CDPWPlanner{P<:Union{MDP,POMDP}, S, A, SE, NA, RCB, RNG} <: AbstractCMCTSPlanner{P}
+    solver::CDPWSolver
     mdp::P
-    tree::Union{Nothing, DPWTree{S,A}}
+    tree::Union{Nothing, CDPWTree{S,A}}
     solved_estimate::SE
     next_action::NA
     reset_callback::RCB
@@ -266,9 +266,9 @@ mutable struct DPWPlanner{P<:Union{MDP,POMDP}, S, A, SE, NA, RCB, RNG} <: Abstra
 end
 
 
-function DPWPlanner(solver::DPWSolver, mdp::P) where P<:Union{POMDP,MDP}
+function CDPWPlanner(solver::CDPWSolver, mdp::P) where P<:Union{POMDP,MDP}
     se = convert_estimator(solver.estimate_value, solver, mdp)
-    return DPWPlanner{P,
+    return CDPWPlanner{P,
                       statetype(P),
                       actiontype(P),
                       typeof(se),
@@ -284,4 +284,4 @@ function DPWPlanner(solver::DPWSolver, mdp::P) where P<:Union{POMDP,MDP}
                      )
 end
 
-Random.seed!(p::DPWPlanner, seed) = Random.seed!(p.rng, seed)
+Random.seed!(p::CDPWPlanner, seed) = Random.seed!(p.rng, seed)

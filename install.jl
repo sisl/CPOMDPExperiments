@@ -16,6 +16,9 @@ packages = [
     # [deps] CPOMCPOW.jl
     PackageSpec(url=joinpath(@__DIR__, "CPOMCPOW.jl")),
 
+    # [deps] CRockSample.jl
+    PackageSpec(url=joinpath(@__DIR__, "CRockSample.jl")),
+
     # [deps] CPOMDPExperiments.jl
     PackageSpec(url=joinpath(@__DIR__)),
 ]
@@ -44,9 +47,19 @@ Pkg.add("D3Trees")
 #Pkg.add("BSON")
 Pkg.add("Distributions")
 #Pkg.add("Infiltrator")
-#Pkg.add("POMDPModelTools")
-#Pkg.add("POMDPPolicies")
-#Pkg.add("POMDPs")
+
+# POMDP things. 
+Pkg.add("POMDPs")
+Pkg.add("POMDPModelTools")
+Pkg.add("POMDPPolicies")
+Pkg.add("MCTS")
+Pkg.add("BasicPOMCP")
+Pkg.add("POMDPModels")
+Pkg.add("ParticleFilters")
+Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/RockSample.jl"))
+Pkg.add(PackageSpec(url="https://github.com/zsunberg/VDPTag2.jl"))
+Pkg.add(PackageSpec(url="https://github.com/sisl/RoombaPOMDPs.git"))
+
 #Pkg.add("Parameters")
 #Pkg.add("ProgressMeter")
 #Pkg.add("POMDPSimulators")

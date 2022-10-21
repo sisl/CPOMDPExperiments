@@ -3,7 +3,7 @@
 
 Return an estimate of the value.
 
-The `remaining_depth` argument indicates the remaining number of steps from the point where `estimate_value` is called to the `depth` argument of the MCTS solver. It can be safely ignored, but can be used to limit rollouts to a fixed horizon from the *root node*.
+The `remaining_depth` argument indicates the remaining number of steps from the point where `estimate_value` is called to the `depth` argument of the CMCTS solver. It can be safely ignored, but can be used to limit rollouts to a fixed horizon from the *root node*.
 """
 function estimate_value end
 estimate_value(f::Function, mdp::Union{POMDP,MDP}, state, remaining_depth) = f(mdp, state, remaining_depth)
@@ -20,7 +20,7 @@ Fields:
         If this is a Policy, the policy will be used for rollouts
         If this is a Function, a POMDPToolbox.FunctionPolicy with this function will be used for rollouts
     max_depth::Union{Int, Nothing}
-        Rollout depth. If this is -1, it will roll out to the `depth` argument of the `MCTSSolver` from the root node.
+        Rollout depth. If this is -1, it will roll out to the `depth` argument of the `CMCTSSolver` from the root node.
     eps::Union{Float64, Nothing}
         A small number; if γᵗ where γ is the discount factor and t is the time step becomes smaller than this, the rollout will be terminated.
 """
@@ -39,7 +39,7 @@ end
 """
 SolvedRolloutEstimator
 
-This is within the policy when a RolloutEstimator is passed to an AbstractMCTSSolver
+This is within the policy when a RolloutEstimator is passed to an AbstractCMCTSSolver
 """
 mutable struct SolvedRolloutEstimator{P<:Policy, RNG<:AbstractRNG}
     policy::P
@@ -49,7 +49,7 @@ mutable struct SolvedRolloutEstimator{P<:Policy, RNG<:AbstractRNG}
 end
 
 convert_estimator(ev, solver, mdp) = ev
-function convert_estimator(ev::RolloutEstimator, solver::AbstractMCTSSolver, mdp::Union{POMDP,MDP})
+function convert_estimator(ev::RolloutEstimator, solver::AbstractCMCTSSolver, mdp::Union{POMDP,MDP})
     return SolvedRolloutEstimator(convert_to_policy(ev.solver, mdp), solver.rng, ev.max_depth, ev.eps)
 end
 convert_to_policy(p::Policy, mdp::Union{POMDP,MDP}) = p

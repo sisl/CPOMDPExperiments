@@ -1,4 +1,4 @@
-function POMDPs.transition(pomdp::RockSamplePOMDP{K}, s::RSState{K}, a::Int) where K
+function POMDPs.transition(pomdp::RockSampleCPOMDP{K}, s::RSState{K}, a::Int) where K
     if isterminal(pomdp, s)
         return Deterministic(pomdp.terminal_state)
     end

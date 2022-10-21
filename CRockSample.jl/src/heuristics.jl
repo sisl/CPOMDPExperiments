@@ -3,8 +3,8 @@ struct RSExitSolver <: Solver end
 struct RSExit <: Policy
     exit_return::Vector{Float64}
 end
-POMDPs.solve(::RSExitSolver, m::RockSamplePOMDP) = RSExit([discount(m)^(m.map_size[1]-x) * m.exit_reward for x in 1:m.map_size[1]])
-POMDPs.solve(solver::RSExitSolver, m::UnderlyingMDP{P}) where P <: RockSamplePOMDP = solve(solver, m.pomdp)
+POMDPs.solve(::RSExitSolver, m::RockSampleCPOMDP) = RSExit([discount(m)^(m.map_size[1]-x) * m.exit_reward for x in 1:m.map_size[1]])
+POMDPs.solve(solver::RSExitSolver, m::UnderlyingMDP{P}) where P <: RockSampleCPOMDP = solve(solver, m.pomdp)
 POMDPs.value(p::RSExit, s::RSState) = s.pos[1] == -1 ? 0.0 : p.exit_return[s.pos[1]]
 
 function POMDPs.value(p::RSExit, b::AbstractParticleBelief)
@@ -23,8 +23,8 @@ struct RSMDPSolver <: Solver
     include_Q::Bool
 end
 RSMDPSolver(;include_Q=false) = RSMDPSolver(include_Q)
-POMDPs.solve(solver::RSMDPSolver, m::RockSamplePOMDP) = solve(solver, UnderlyingMDP(m))
-function POMDPs.solve(solver::RSMDPSolver, m::UnderlyingMDP{P}) where P <: RockSamplePOMDP
+POMDPs.solve(solver::RSMDPSolver, m::RockSampleCPOMDP) = solve(solver, UnderlyingMDP(m))
+function POMDPs.solve(solver::RSMDPSolver, m::UnderlyingMDP{P}) where P <: RockSampleCPOMDP
     util = rs_mdp_utility(m.pomdp)
     if solver.include_Q
         return solve(ValueIterationSolver(init_util=util, include_Q=true), m)
@@ -35,13 +35,13 @@ end
 
 # Dedicated QMDP solver for RockSample
 struct RSQMDPSolver <: Solver end
-function POMDPs.solve(::RSQMDPSolver, m::RockSamplePOMDP)
+function POMDPs.solve(::RSQMDPSolver, m::RockSampleCPOMDP)
     vi_policy = solve(RSMDPSolver(include_Q=true), m)
     return AlphaVectorPolicy(m, vi_policy.qmat, vi_policy.action_map)
 end
 
 # Solve for the optimal utility of RockSample, assuming full observability.
-function rs_mdp_utility(m::RockSamplePOMDP{K}) where K
+function rs_mdp_utility(m::RockSampleCPOMDP{K}) where K
     util = zeros(length(states(m)))
     discounts = discount(m) .^ (0:(m.map_size[1]+m.map_size[2]-2))
 

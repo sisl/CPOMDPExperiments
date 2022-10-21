@@ -1,5 +1,5 @@
 """
-MCTS solver type
+CMCTS solver type
 
 Fields:
 
@@ -57,7 +57,7 @@ Fields:
     timer::Function:
         Timekeeping method. Search iterations ended when `timer() - start_time ≥ max_time`.
 """
-mutable struct MCTSSolver <: AbstractMCTSSolver
+mutable struct CMCTSSolver <: AbstractCMCTSSolver
     n_iterations::Int64
     max_time::Float64
     depth::Int64
@@ -72,11 +72,11 @@ mutable struct MCTSSolver <: AbstractMCTSSolver
 end
 
 """
-    MCTSSolver()
+    CMCTSSolver()
 
 Use keyword arguments to specify values for the fields.
 """
-function MCTSSolver(;n_iterations::Int64=100,
+function CMCTSSolver(;n_iterations::Int64=100,
                      max_time::Float64=Inf,
                      depth::Int64=10,
                      exploration_constant::Float64=1.0,
@@ -87,11 +87,11 @@ function MCTSSolver(;n_iterations::Int64=100,
                      reuse_tree::Bool=false,
                      enable_tree_vis::Bool=false,
                      timer=() -> 1e-9 * time_ns())
-    return MCTSSolver(n_iterations, max_time, depth, exploration_constant, rng, estimate_value, init_Q, init_N,
+    return CMCTSSolver(n_iterations, max_time, depth, exploration_constant, rng, estimate_value, init_Q, init_N,
                       reuse_tree, enable_tree_vis, timer)
 end
 
-mutable struct MCTSTree{S,A}
+mutable struct CMCTSTree{S,A}
     state_map::Dict{S,Int}
 
     # these vectors have one entry for each state node
@@ -106,7 +106,7 @@ mutable struct MCTSTree{S,A}
 
     _vis_stats::Union{Nothing, Dict{Pair{Int,Int}, Int}} # maps (said=>sid)=>number of transitions. THIS MAY CHANGE IN THE FUTURE
 
-    function MCTSTree{S,A}(sz::Int=1000) where {S,A}
+    function CMCTSTree{S,A}(sz::Int=1000) where {S,A}
         sz = min(sz, 100_000)
 
         return new(Dict{S, Int}(),
@@ -123,21 +123,21 @@ mutable struct MCTSTree{S,A}
     end
 end
 
-Base.isempty(t::MCTSTree) = isempty(t.state_map)
-state_nodes(t::MCTSTree) = (StateNode(t, id) for id in 1:length(t.total_n))
+Base.isempty(t::CMCTSTree) = isempty(t.state_map)
+state_nodes(t::CMCTSTree) = (StateNode(t, id) for id in 1:length(t.total_n))
 
 struct StateNode{S,A}
-    tree::MCTSTree{S,A}
+    tree::CMCTSTree{S,A}
     id::Int
 end
-StateNode(tree::MCTSTree{S}, s::S) where S = StateNode(tree, tree.state_map[s])
+StateNode(tree::CMCTSTree{S}, s::S) where S = StateNode(tree, tree.state_map[s])
 
 """
-    get_state_node(tree::MCTSTree, s)
+    get_state_node(tree::CMCTSTree, s)
 
 Return the StateNode in the tree corresponding to s.
 """
-get_state_node(tree::MCTSTree, s) = StateNode(tree, s)
+get_state_node(tree::CMCTSTree, s) = StateNode(tree, s)
 
 
 # accessors for state nodes
@@ -147,7 +147,7 @@ get_state_node(tree::MCTSTree, s) = StateNode(tree, s)
 @inline children(n::StateNode) = (ActionNode(n.tree, id) for id in child_ids(n))
 
 struct ActionNode{S,A}
-    tree::MCTSTree{S,A}
+    tree::CMCTSTree{S,A}
     id::Int
 end
 
@@ -157,33 +157,33 @@ end
 @inline q(n::ActionNode) = n.tree.q[n.id]
 
 
-mutable struct MCTSPlanner{P<:Union{MDP,POMDP}, S, A, SE, RNG} <: AbstractMCTSPlanner{P}
-	solver::MCTSSolver # containts the solver parameters
+mutable struct CMCTSPlanner{P<:Union{MDP,POMDP}, S, A, SE, RNG} <: AbstractCMCTSPlanner{P}
+	solver::CMCTSSolver # containts the solver parameters
 	mdp::P # model
-    tree::Union{Nothing,MCTSTree{S,A}} # the search tree
+    tree::Union{Nothing,CMCTSTree{S,A}} # the search tree
     solved_estimate::SE
     rng::RNG
 end
 
-function MCTSPlanner(solver::MCTSSolver, mdp::Union{POMDP,MDP})
+function CMCTSPlanner(solver::CMCTSSolver, mdp::Union{POMDP,MDP})
     # tree = Dict{statetype(mdp), StateNode{actiontype(mdp)}}()
-    tree = MCTSTree{statetype(mdp), actiontype(mdp)}(solver.n_iterations)
+    tree = CMCTSTree{statetype(mdp), actiontype(mdp)}(solver.n_iterations)
     se = convert_estimator(solver.estimate_value, solver, mdp)
-    return MCTSPlanner(solver, mdp, tree, se, solver.rng)
+    return CMCTSPlanner(solver, mdp, tree, se, solver.rng)
 end
 
 
 """
 Delete existing decision tree.
 """
-function clear_tree!(p::MCTSPlanner{S,A}) where {S,A} p.tree = nothing end
+function clear_tree!(p::CMCTSPlanner{S,A}) where {S,A} p.tree = nothing end
 
 """
-    get_state_node(tree::MCTSTree, s, planner::MCTSPlanner)
+    get_state_node(tree::CMCTSTree, s, planner::CMCTSPlanner)
 
 Return the StateNode in the tree corresponding to s. If there is no such node, add it using the planner.
 """
-function get_state_node(tree::MCTSTree, s, planner::MCTSPlanner)
+function get_state_node(tree::CMCTSTree, s, planner::CMCTSPlanner)
     if haskey(tree.state_map, s)
         return StateNode(tree, s)
     else
@@ -193,46 +193,46 @@ end
 
 
 # no computation is done in solve - the solver is just given the mdp model that it will work with
-POMDPs.solve(solver::MCTSSolver, mdp::Union{POMDP,MDP}) = MCTSPlanner(solver, mdp)
+POMDPs.solve(solver::CMCTSSolver, mdp::Union{POMDP,MDP}) = CMCTSPlanner(solver, mdp)
 
-@POMDP_require POMDPs.action(policy::AbstractMCTSPlanner, state) begin
+@POMDP_require POMDPs.action(policy::AbstractCMCTSPlanner, state) begin
     @subreq simulate(policy, state, policy.solver.depth)
 end
 
-function POMDPTools.action_info(p::AbstractMCTSPlanner, s)
+function POMDPTools.action_info(p::AbstractCMCTSPlanner, s)
     tree = plan!(p, s)
     best = best_sanode_Q(StateNode(tree, s))
     return action(best), (tree=tree,)
 end
 
-POMDPs.action(p::AbstractMCTSPlanner, s) = first(action_info(p, s))
+POMDPs.action(p::AbstractCMCTSPlanner, s) = first(action_info(p, s))
 
 """
 Query the tree for a value estimate at state s. If the planner does not already have a tree, run the planner first.
 """
-function POMDPs.value(planner::MCTSPlanner, s)
+function POMDPs.value(planner::CMCTSPlanner, s)
     if planner.tree == nothing
         plan!(planner, s)
     end
     return value(planner.tree, s)
 end
 
-function POMDPs.value(tr::MCTSTree, s)
+function POMDPs.value(tr::CMCTSTree, s)
     id = get(tr.state_map, s, 0)
     if id == 0
-        error("State $s not present in MCTS tree.")
+        error("State $s not present in CMCTS tree.")
     end
     return maximum(q(san) for san in children(StateNode(tr, id)))
 end
 
-function POMDPs.value(planner::MCTSPlanner{<:Union{POMDP,MDP}, S, A}, s::S, a::A) where {S,A}
+function POMDPs.value(planner::CMCTSPlanner{<:Union{POMDP,MDP}, S, A}, s::S, a::A) where {S,A}
     if planner.tree == nothing
         plan!(planner, s)
     end
     return value(planner.tree, s, a)
 end
 
-function POMDPs.value(tr::MCTSTree{S,A}, s::S, a::A) where {S,A}
+function POMDPs.value(tr::CMCTSTree{S,A}, s::S, a::A) where {S,A}
     for san in children(StateNode(tr, s)) # slow search through children
         if action(san) == a
             return q(san)
@@ -244,20 +244,20 @@ end
 """
 Build tree and store it in the planner.
 """
-function plan!(planner::AbstractMCTSPlanner, s)
+function plan!(planner::AbstractCMCTSPlanner, s)
     tree = build_tree(planner, s)
     planner.tree = tree
     return tree
 end
 
-function build_tree(planner::AbstractMCTSPlanner, s)
+function build_tree(planner::AbstractCMCTSPlanner, s)
     n_iterations = planner.solver.n_iterations
     depth = planner.solver.depth
 
     if planner.solver.reuse_tree
         tree = planner.tree
     else
-        tree = MCTSTree{statetype(planner.mdp), actiontype(planner.mdp)}(n_iterations)
+        tree = CMCTSTree{statetype(planner.mdp), actiontype(planner.mdp)}(n_iterations)
     end
 
     sid = get(tree.state_map, s, 0)
@@ -280,7 +280,7 @@ function build_tree(planner::AbstractMCTSPlanner, s)
 end
 
 
-function simulate(planner::AbstractMCTSPlanner, node::StateNode, depth::Int64)
+function simulate(planner::AbstractCMCTSPlanner, node::StateNode, depth::Int64)
     mdp = planner.mdp
     rng = planner.rng
     s = state(node)
@@ -318,7 +318,7 @@ function simulate(planner::AbstractMCTSPlanner, node::StateNode, depth::Int64)
     return q
 end
 
-@POMDP_require simulate(planner::AbstractMCTSPlanner, s, depth::Int64) begin
+@POMDP_require simulate(planner::AbstractCMCTSPlanner, s, depth::Int64) begin
     mdp = planner.mdp
     P = typeof(mdp)
     S = statetype(P)
@@ -332,7 +332,7 @@ end
     @req hash(::S) # for hasnode
 end
 
-function insert_node!(tree::MCTSTree, planner::MCTSPlanner, s)
+function insert_node!(tree::CMCTSTree, planner::CMCTSPlanner, s)
     push!(tree.s_labels, s)
     tree.state_map[s] = length(tree.s_labels)
     push!(tree.child_ids, [])
@@ -349,7 +349,7 @@ function insert_node!(tree::MCTSTree, planner::MCTSPlanner, s)
     return StateNode(tree, length(tree.total_n))
 end
 
-@POMDP_require insert_node!(tree::MCTSTree, planner::AbstractMCTSPlanner, s) begin
+@POMDP_require insert_node!(tree::CMCTSTree, planner::AbstractCMCTSPlanner, s) begin
     # from the StateNode constructor
     P = typeof(planner.mdp)
     A = actiontype(P)
@@ -368,7 +368,7 @@ end
     @req hash(::S) # for tree[s]
 end
 
-function record_visit!(tree::MCTSTree, said::Int, spid::Int)
+function record_visit!(tree::CMCTSTree, said::Int, spid::Int)
     vs = tree._vis_stats
     if !haskey(vs, said=>spid)
         vs[said=>spid] = 0

@@ -1,4 +1,4 @@
-function simulate(pomcp::POMCPOWPlanner, h_node::POWTreeObsNode{B,A,O}, s::S, d) where {B,S,A,O}
+function simulate(pomcp::CPOMCPOWPlanner, h_node::POWTreeObsNode{B,A,O}, s::S, d) where {B,S,A,O}
 
     tree = h_node.tree
     h = h_node.node
@@ -75,7 +75,7 @@ function simulate(pomcp::POMCPOWPlanner, h_node::POWTreeObsNode{B,A,O}, s::S, d)
     end
 
     if r == Inf
-        @warn("POMCPOW: +Inf reward. This is not recommended and may cause future errors.")
+        @warn("CPOMCPOW: +Inf reward. This is not recommended and may cause future errors.")
     end
 
     if new_node

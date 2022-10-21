@@ -1,21 +1,21 @@
-POMDPs.solve(solver::DPWSolver, mdp::Union{POMDP,MDP}) = DPWPlanner(solver, mdp)
+POMDPs.solve(solver::CDPWSolver, mdp::Union{POMDP,MDP}) = CDPWPlanner(solver, mdp)
 
 """
 Delete existing decision tree.
 """
-function clear_tree!(p::DPWPlanner)
+function clear_tree!(p::CDPWPlanner)
     p.tree = nothing
 end
 
 """
-Construct an MCTSDPW tree and choose the best action.
+Construct an MCTSCDPW tree and choose the best action.
 """
-POMDPs.action(p::DPWPlanner, s) = first(action_info(p, s))
+POMDPs.action(p::CDPWPlanner, s) = first(action_info(p, s))
 
 """
-Construct an MCTSDPW tree and choose the best action. Also output some information.
+Construct an MCTSCDPW tree and choose the best action. Also output some information.
 """
-function POMDPTools.action_info(p::DPWPlanner, s; tree_in_info=false)
+function POMDPTools.action_info(p::CDPWPlanner, s; tree_in_info=false)
     local a::actiontype(p.mdp)
     info = Dict{Symbol, Any}()
     try
@@ -36,7 +36,7 @@ function POMDPTools.action_info(p::DPWPlanner, s; tree_in_info=false)
                 snode = insert_state_node!(tree, s, true)
             end
         else
-            tree = DPWTree{S,A}(p.solver.n_iterations)
+            tree = CDPWTree{S,A}(p.solver.n_iterations)
             p.tree = tree
             snode = insert_state_node!(tree, s, p.solver.check_repeat_state)
         end
@@ -74,9 +74,9 @@ end
 
 
 """
-Return the reward for one iteration of MCTSDPW.
+Return the reward for one iteration of MCTSCDPW.
 """
-function simulate(dpw::DPWPlanner, snode::Int, d::Int)
+function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
     S = statetype(dpw.mdp)
     A = actiontype(dpw.mdp)
     sol = dpw.solver
@@ -159,7 +159,7 @@ Return the best action.
 Some publications say to choose action that has been visited the most
 e.g., Continuous Upper Confidence Trees by Couëtoux et al.
 """
-function best_sanode(tree::DPWTree, snode::Int)
+function best_sanode(tree::CDPWTree, snode::Int)
     best_Q = -Inf
     sanode = 0
     for child in tree.children[snode]
@@ -175,7 +175,7 @@ end
 """
 Return the best action node based on the UCB score with exploration constant c
 """
-function best_sanode_UCB(tree::DPWTree, snode::Int, c::Float64)
+function best_sanode_UCB(tree::CDPWTree, snode::Int, c::Float64)
     best_UCB = -Inf
     sanode = 0
     ltn = log(tree.total_n[snode])

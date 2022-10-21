@@ -11,10 +11,10 @@ const ACTION_DIRS = (RSPos(0,1),
                     RSPos(-1,0),
                     RSPos(0,0))
 
-POMDPs.actions(pomdp::RockSamplePOMDP{K}) where K = 1:N_BASIC_ACTIONS+K
-POMDPs.actionindex(pomdp::RockSamplePOMDP, a::Int) = a
+POMDPs.actions(pomdp::RockSampleCPOMDP{K}) where K = 1:N_BASIC_ACTIONS+K
+POMDPs.actionindex(pomdp::RockSampleCPOMDP, a::Int) = a
 
-function POMDPs.actions(pomdp::RockSamplePOMDP{K}, s::RSState) where K
+function POMDPs.actions(pomdp::RockSampleCPOMDP{K}, s::RSState) where K
     if in(s.pos, pomdp.rocks_positions) # slow? pomdp.rock_pos is a vec 
         return actions(pomdp)
     else

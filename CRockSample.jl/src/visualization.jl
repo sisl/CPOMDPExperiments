@@ -1,4 +1,4 @@
-function POMDPModelTools.render(pomdp::RockSamplePOMDP, step;
+function POMDPModelTools.render(pomdp::RockSampleCPOMDP, step;
     viz_rock_state=true,
     viz_belief=true,
     pre_act_text=""
@@ -52,7 +52,7 @@ function cell_ctx(xy, size)
     return context((x - 1) / nx, (ny - y - 1) / ny, 1 / nx, 1 / ny)
 end
 
-function render_belief(pomdp::RockSamplePOMDP, step)
+function render_belief(pomdp::RockSampleCPOMDP, step)
     rock_beliefs = get_rock_beliefs(pomdp, get(step, :b, nothing))
     nx, ny = pomdp.map_size[1] + 1, pomdp.map_size[2] + 1
     belief_outlines = []
@@ -68,7 +68,7 @@ function render_belief(pomdp::RockSamplePOMDP, step)
     return compose(context(), belief_fills..., belief_outlines...)
 end
 
-function get_rock_beliefs(pomdp::RockSamplePOMDP{K}, b) where K
+function get_rock_beliefs(pomdp::RockSampleCPOMDP{K}, b) where K
     rock_beliefs = zeros(Float64, K)
     if hasproperty(b, :b)
         b′ = b.b
@@ -102,7 +102,7 @@ function render_agent(ctx)
     return compose(ctx, center, lwheel, rwheel)
 end
 
-function render_action_text(pomdp::RockSamplePOMDP, step, pre_act_text)
+function render_action_text(pomdp::RockSampleCPOMDP, step, pre_act_text)
     actions = ["North", "East", "South", "West", "Sample"]
     action_text = "Terminal"
     if get(step, :a, nothing) !== nothing
@@ -124,7 +124,7 @@ function render_action_text(pomdp::RockSamplePOMDP, step, pre_act_text)
     return compose(ctx, txt, rectangle(), fill("white"))
 end
 
-function render_action(pomdp::RockSamplePOMDP, step)
+function render_action(pomdp::RockSampleCPOMDP, step)
     if step.a == BASIC_ACTIONS_DICT[:sample]
         ctx = cell_ctx(step.s.pos, pomdp.map_size .+ (1, 1))
         if in(step.s.pos, pomdp.rocks_positions)

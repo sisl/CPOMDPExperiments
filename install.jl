@@ -20,7 +20,7 @@ packages = [
     PackageSpec(url=joinpath(@__DIR__, "CRockSample.jl")),
 
     # [deps] CPOMDPExperiments.jl
-    PackageSpec(url=joinpath(@__DIR__)),
+    # PackageSpec(url=joinpath(@__DIR__)),
 ]
 
 ci = haskey(ENV, "CI") && ENV["CI"] == "true"
@@ -54,15 +54,17 @@ Pkg.add("POMDPModelTools")
 Pkg.add("POMDPPolicies")
 Pkg.add("MCTS")
 Pkg.add("BasicPOMCP")
+Pkg.add("POMCPOW")
 Pkg.add("POMDPModels")
 Pkg.add("ParticleFilters")
+Pkg.add("POMDPSimulators")
 Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/RockSample.jl"))
 Pkg.add(PackageSpec(url="https://github.com/zsunberg/VDPTag2.jl"))
 Pkg.add(PackageSpec(url="https://github.com/sisl/RoombaPOMDPs.git"))
 
 #Pkg.add("Parameters")
-#Pkg.add("ProgressMeter")
-#Pkg.add("POMDPSimulators")
+Pkg.add("ProgressMeter")
+#
 #Pkg.add("OrderedCollections")
 Pkg.add("POMDPGifs")
 Pkg.add("Cairo")

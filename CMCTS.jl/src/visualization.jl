@@ -121,62 +121,6 @@ function D3Trees.D3Tree(tree::CMCTSTree, root_state=first(tree.s_labels); title=
     return D3Tree(nodes; title=title, kwargs...)
 end
 
-function D3Trees.D3Tree(nodes::Vector{Dict{String, Any}}; title="Julia D3Tree", kwargs...)
-    len = length(nodes)
-    children = Vector{Vector{Int}}(undef, len)
-    text = Vector{String}(undef, len)
-    tooltip = Vector{String}(undef, len)
-    style = fill("", len)
-    link_style = fill("", len)
-    max_q = maximum(get(n, "q", 0.0) for n in nodes)
-    min_q = minimum(get(n, "q", 0.0) for n in nodes)
-    for i in 1:len
-        n = nodes[i]
-        children[i] = n["child_d3ids"]
-        if n["type"] == :state
-            text[i] = @sprintf("""
-                               %25s
-                               N: %6d
-                               """,
-                               n["tag"], n["total_n"])
-            tooltip[i] = """
-                         $(n["tt_tag"])
-                         N: $(n["total_n"])
-                         """
-            w = 20.0*sqrt(n["n"]/n["parent_n"])
-            link_style[i] = "stroke-width:$(w)px"
-        elseif n["type"] == :action
-            text[i] = @sprintf("""
-                               %25s
-                               Q: %6.2f
-                               N: %6d
-                               """,
-                               n["tag"], n["q"], n["n"])
-            tooltip[i] = """
-                         $(n["tt_tag"])
-                         Q: $(n["q"])
-                         N: $(n["n"])
-                         """
-
-            rel_q = (n["q"]-min_q)/(max_q-min_q)
-            color = weighted_color_mean(rel_q, colorant"green", colorant"red")
-            style[i] = "stroke:#$(hex(color))"
-            w = 20.0*sqrt(n["n"]/n["parent_n"])
-            link_style[i] = "stroke-width:$(w)px"
-        else
-            @warn("Unrecognized node type when constructing D3Tree.")
-        end
-    end
-    return D3Tree(children;
-                  text=text,
-                  tooltip=tooltip,
-                  style=style,
-                  link_style=link_style,
-                  title=title,
-                  kwargs...
-                 )
-end
-
 function D3Trees.D3Tree(tree::CDPWTree; title="CMCTS-DPW Tree", kwargs...)
     lens = length(tree.total_n)
     lensa = length(tree.n)

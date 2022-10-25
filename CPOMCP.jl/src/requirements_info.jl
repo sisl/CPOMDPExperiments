@@ -24,10 +24,10 @@ end
     @req rand(::typeof(p.rng), ::typeof(b))
     s = rand(p.rng, b)
     @req isterminal(::P, ::statetype(P))
-    @subreq simulate(p, s, CPOMCPObsNode(t, 1), p.solver.max_depth)
+    @subreq simulate(p, s, POMCPObsNode(t, 1), p.solver.max_depth)
 end
 
-@POMDP_require simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int) begin
+@POMDP_require simulate(p::CPOMCPPlanner, s, hnode::POMCPObsNode, steps::Int) begin
     P = typeof(p.problem)
     S = statetype(P)
     A = actiontype(P)
@@ -43,6 +43,6 @@ end
     @req discount(::P)
 end
 
-@POMDP_require estimate_value(f::Function, pomdp::POMDPs.POMDP, start_state, h::BeliefNode, steps::Int) begin
+@POMDP_require estimate_value(f::Function, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) begin
     @req f(::typeof(pomdp), ::typeof(start_state), ::typeof(h), ::typeof(steps))
 end

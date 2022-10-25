@@ -40,14 +40,14 @@ export
     ReportWhenUsed,
     default_action,
 
-    BeliefNode,
+    CBeliefNode,
     LeafNodeBelief,
     AbstractCPOMCPSolver,
 
-    PORollout,
-    FORollout,
-    RolloutEstimator,
-    FOValue,
+    CPORollout,
+    CFORollout,
+    CRolloutEstimator,
+    CFOValue,
 
     D3Tree,
     node_tag,
@@ -57,6 +57,17 @@ export
     AOHistoryBelief
 
 abstract type AbstractCPOMCPSolver <: Solver end
+mutable struct CRolloutEstimator
+    solver::Union{Solver,Policy,Function} # rollout policy or solver
+    max_depth::Union{Int, Nothing}
+    eps::Union{Float64, Nothing}
+
+    function CRolloutEstimator(solver::Union{Solver,Policy,Function};
+                               max_depth::Union{Int, Nothing}=50,
+                               eps::Union{Float64, Nothing}=nothing)
+        new(solver, max_depth, eps)
+    end
+end
 
 """
     CPOMCPSolver(#=keyword arguments=#)
@@ -87,11 +98,11 @@ Partially Observable Monte Carlo Planning Solver.
 
 - `estimate_value::Any`
     Function, object, or number used to estimate the value at the leaf nodes.
-    default: `RolloutEstimator(RandomSolver(rng))`
-    - If this is a function `f`, `f(pomdp, s, h::BeliefNode, steps)` will be called to estimate the value.
-    - If this is an object `o`, `estimate_value(o, pomdp, s, h::BeliefNode, steps)` will be called.
+    default: `CRolloutEstimator(RandomSolver(rng))`
+    - If this is a function `f`, `f(pomdp, s, h::CBeliefNode, steps)` will be called to estimate the value.
+    - If this is an object `o`, `estimate_value(o, pomdp, s, h::CBeliefNode, steps)` will be called.
     - If this is a number, the value will be set to that number
-    Note: In many cases, the simplest way to estimate the value is to do a rollout on the fully observable MDP with a policy that is a function of the state. To do this, use `FORollout(policy)`.
+    Note: In many cases, the simplest way to estimate the value is to do a rollout on the fully observable MDP with a policy that is a function of the state. To do this, use `CFORollout(policy)`.
 
 - `default_action::Any`
     Function, action, or Policy used to determine the action if POMCP fails with exception `ex`.
@@ -112,7 +123,7 @@ Partially Observable Monte Carlo Planning Solver.
     tree_in_info::Bool      = false
     default_action::Any     = ExceptionRethrow()
     rng::AbstractRNG        = Random.GLOBAL_RNG
-    estimate_value::Any     = RolloutEstimator(RandomSolver(rng))
+    estimate_value::Any     = CRolloutEstimator(RandomSolver(rng))
 end
 
 struct CPOMCPTree{A,O}
@@ -196,9 +207,9 @@ function insert_action_node!(t::CPOMCPTree, h::Int, a)
     return length(t.n)
 end
 
-abstract type BeliefNode <: AbstractStateNode end
+abstract type CBeliefNode <: AbstractStateNode end
 
-struct CPOMCPObsNode{A,O} <: BeliefNode
+struct POMCPObsNode{A,O} <: CBeliefNode
     tree::CPOMCPTree{A,O}
     node::Int
 end

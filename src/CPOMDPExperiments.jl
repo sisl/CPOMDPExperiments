@@ -10,7 +10,8 @@ using ParticleFilters
 using POMDPs
 using POMDPModels
 using RockSample
-using VDPTag2
+#using VDPTag2
+using RoombaPOMDPs
 using BasicPOMCP
 using MCTS # belief-mcts for belief dpw
 using POMCPOW
@@ -19,86 +20,55 @@ using CRockSample
 using CPOMDPs
 using CMCTS
 using CPOMCP
+#using CPOMCPOW
 using CRockSample
 
+export
+    test,
+    run_all_tests
 
-# pairs of pomdp, cpomdp models
-models = [
-    (
-        "rocksample",
-        RockSamplePOMDP(rocks_positions=[(2,3), (4,4), (4,2)], 
-            sensor_efficiency=20.0,
-            discount_factor=0.95, 
-            good_rock_reward = 20.0),
-        RockSampleCPOMDP(rocks_positions=[(2,3), (4,4), (4,2)], 
-            sensor_efficiency=20.0,
-            discount_factor=0.95, 
-            good_rock_reward = 20.0),
-    ),
-    (
-        "vdptag",
-        VDPTagPOMDP(),
-        VDPTagPOMDP(),
-    ),
-    (
-        "lightdark1d",
-        LightDark1D(),
-        LightDark1D(),
-    ),
-    (
-        "roomba",
-        RoombaPOMDP(),
-        RoombaPOMDP(),
-    ),
-]
+include("configs.jl")
 
-# pairs of pomdp, cpomdp solvers
-solvers = [
-    ("pomcp",
-        POMCPSolver(tree_queries=10000, c=10), 
-        POMCPOWSolver(tree_queries=10000, c=10)), #POMCP
-    ("pft", 
-        BeliefMCTSSolver(DPWSolver(), SIRParticleFilter(pomdp, 1000)), #FIXME
-        BeliefCMCTSSolver(CDPWSolver(), SIRParticleFilter(cpomdp, 1000))), #FIXME #PFT-DPW
-    ("pomcpow", 
-        POMCPOWSolver(criterion=MaxUCB(20.0)), 
-        CPOMCPOWSolver(criterion=MaxUCB(20.0))), # POMCPOW
-]
+function test(model::String, solver::String)
+    
+    println("Testing POMDP $(model) with solver $(solver)")
+    problem_test(models[model][1], solvers[solver][1], "test_pomdp_$(model)_$(solver)")
 
-### pomdp test
+    println("Testing CPOMDP $(model) with solver $(solver)")
+    problem_test(models[model][2], solvers[solver][2], "test_cpomdp_$(model)_$(solver)")
+end
 
-for (pname, pomdp, cpomdp) in models
-    for (sname, pomdp_solver, cpomdp_solver) in solvers
-        
-        ### POMDP
-        println("Testing POMDP $(pname) with solver $(sname)")
-        pomdp_planner = solve(pomdp_solver, pomdp)
+function generate_gif(p::POMDP, s, fname::String)
+    try
+        sim = GifSimulator(filename=fname, max_steps=30)
+        simulate(sim,p,s)
+    catch err
+        println("Simulation $(fname) failed")
+    end
+end
 
-        filter = SIRParticleFilter(pomdp, 1000)
-        for (s, a, o) in stepthrough(pomdp, pomdp_planner, filter, "s,a,o", max_steps=10)
-            println("State was $s,")
-            println("action $a was taken,")
-            println("and observation $o was received.\n")
+function problem_test(p::POMDP, solver_func::Function, name::String)
+    solver = solver_func(p)
+    planner = solve(solver, p)
+
+    # stepthrough
+    for (s, a, o) in stepthrough(p, planner, "s,a,o", max_steps=10)
+        println("State was $s,")
+        println("action $a was taken,")
+        println("and observation $o was received.\n")
+    end
+    
+    # gif
+    generate_gif(p,planner,name)
+
+    return p, planner
+end
+
+function run_all_tests()
+    for m in MODELS
+        for s in SOLVERS
+            test(m,s)
         end
-
-        # save gif
-        sim_pomdp = GifSimulator(filename="test_pomdp_$(pname)_$(sname).gif", max_steps=30)
-        simulate(sim_pomdp, pomdp, pomdp_planner)
-
-        ### CPOMDP
-        println("Testing CPOMDP $(pname) with solver $(sname)")
-        cpomdp_planner = solve(cpomdp_solver, cpomdp)
-
-        filter = SIRParticleFilter(cpomdp, 1000)
-        for (s, a, o) in stepthrough(cpomdp, cpomdp_planner, filter, "s,a,o", max_steps=10)
-            println("State was $s,")
-            println("action $a was taken,")
-            println("and observation $o was received.\n")
-        end
-
-        # save gif
-        sim_cpomdp = GifSimulator(filename="test_cpomdp_$(pname)_$(sname).gif", max_steps=30)
-        simulate(sim_cpomdp, cpomdp, cpomdp_planner)
     end
 end
 

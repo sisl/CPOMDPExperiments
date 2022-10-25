@@ -29,7 +29,7 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
         end
         s = rand(p.rng, b)
         if !POMDPs.isterminal(p.problem, s)
-            simulate(p, s, CPOMCPObsNode(t, 1), p.solver.max_depth)
+            simulate(p, s, POMCPObsNode(t, 1), p.solver.max_depth)
             all_terminal = false
         end
     end
@@ -56,7 +56,7 @@ end
 
 solve(solver::CPOMCPSolver, pomdp::POMDP) = CPOMCPPlanner(solver, pomdp)
 
-function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
+function simulate(p::CPOMCPPlanner, s, hnode::POMCPObsNode, steps::Int)
     if steps == 0 || isterminal(p.problem, s)
         return 0.0
     end
@@ -95,11 +95,11 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
         v = estimate_value(p.solved_estimator,
                            p.problem,
                            sp,
-                           CPOMCPObsNode(t, hao),
+                           POMCPObsNode(t, hao),
                            steps-1)
         R = r + discount(p.problem)*v
     else
-        R = r + discount(p.problem)*simulate(p, sp, CPOMCPObsNode(t, hao), steps-1)
+        R = r + discount(p.problem)*simulate(p, sp, POMCPObsNode(t, hao), steps-1)
     end
 
     t.total_n[h] += 1

@@ -9,6 +9,7 @@ Current constraints:
 =#
 
 using POMDPs
+using CPOMDPs
 using Parameters
 using ParticleFilters
 using CPUTime
@@ -140,7 +141,7 @@ struct CPOMCPTree{A,O}
     a_labels::Vector{A}                  # actual action corresponding to this action node
 end
 
-function CPOMCPTree(pomdp::POMDP, b, sz::Int=1000)
+function CPOMCPTree(pomdp::CPOMDP, b, sz::Int=1000)
     acts = collect(actions(pomdp, b))
     A = actiontype(pomdp)
     O = obstype(pomdp)
@@ -186,7 +187,7 @@ POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{<:LeafNodeBelief}) = s[].
 # old deprecated name
 const AOHistoryBelief = LeafNodeBelief
 
-function insert_obs_node!(t::CPOMCPTree, pomdp::POMDP, ha::Int, sp, o)
+function insert_obs_node!(t::CPOMCPTree, pomdp::CPOMDP, ha::Int, sp, o)
     acts = actions(pomdp, LeafNodeBelief(tuple((a=t.a_labels[ha], o=o)), sp))
     push!(t.total_n, 0)
     push!(t.children, sizehint!(Int[], length(acts)))
@@ -223,7 +224,7 @@ mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
     _tree::Union{Nothing, Any}
 end
 
-function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::POMDP)
+function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
     se = convert_estimator(solver.estimate_value, solver, pomdp)
     return CPOMCPPlanner(solver, pomdp, se, solver.rng, Int[], nothing)
 end

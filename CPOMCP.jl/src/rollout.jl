@@ -34,18 +34,18 @@ Return an initial unbiased estimate of the value at belief node h.
 By default this runs a rollout simulation
 """
 function estimate_value end
-estimate_value(f::Function, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) = f(pomdp, start_state, h, steps)
-estimate_value(n::Number, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) = convert(Float64, n)
+estimate_value(f::Function, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = f(pomdp, start_state, h, steps)
+estimate_value(n::Number, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = convert(Float64, n)
 
-function estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int)
+function estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
     rollout(estimator, pomdp, start_state, h, steps)
 end
 
-@POMDP_require estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) begin
+@POMDP_require estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
     @subreq rollout(estimator, pomdp, start_state, h, steps)
 end
 
-function estimate_value(estimator::SolvedCFOValue, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int)
+function estimate_value(estimator::SolvedCFOValue, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
     POMDPs.value(estimator.policy, start_state)
 end
 
@@ -65,7 +65,7 @@ function convert_estimator(est::CFORollout, solver, pomdp)
     SolvedCFORollout(policy, solver.rng)
 end
 
-function convert_estimator(est::CFOValue, solver, pomdp::POMDPs.POMDP)
+function convert_estimator(est::CFOValue, solver, pomdp::CPOMDPs.CPOMDP)
     policy = MCTS.convert_to_policy(est.solver, UnderlyingMDP(pomdp))
     SolvedCFOValue(policy)
 end
@@ -74,14 +74,14 @@ end
 """
 Perform a rollout simulation to estimate the value.
 """
-function rollout(est::SolvedCPORollout, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int)
+function rollout(est::SolvedCPORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
     b = extract_belief(est.updater, h)
     sim = RolloutSimulator(est.rng,
                            steps)
     return POMDPs.simulate(sim, pomdp, est.policy, est.updater, b, start_state)
 end
 
-@POMDP_require rollout(est::SolvedCPORollout, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) begin
+@POMDP_require rollout(est::SolvedCPORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
     @req extract_belief(::typeof(est.updater), ::typeof(h))
     b = extract_belief(est.updater, h)
     sim = RolloutSimulator(est.rng,
@@ -90,13 +90,13 @@ end
 end
 
 
-function rollout(est::SolvedCFORollout, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int)
+function rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
     sim = RolloutSimulator(est.rng,
                                         steps)
     return POMDPs.simulate(sim, pomdp, est.policy, start_state)
 end
 
-@POMDP_require rollout(est::SolvedCFORollout, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) begin
+@POMDP_require rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
     sim = RolloutSimulator(est.rng,
                                         steps)
     @subreq POMDPs.simulate(sim, pomdp, est.policy, start_state)

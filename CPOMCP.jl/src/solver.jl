@@ -54,7 +54,7 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     return t.a_labels[best_node]
 end
 
-solve(solver::CPOMCPSolver, pomdp::POMDP) = CPOMCPPlanner(solver, pomdp)
+solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
 function simulate(p::CPOMCPPlanner, s, hnode::POMCPObsNode, steps::Int)
     if steps == 0 || isterminal(p.problem, s)

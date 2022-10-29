@@ -1,4 +1,4 @@
-function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::POMDP)
+function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::CPOMDP)
     println("""
     Since CPOMCP is an online solver, most of the computation occurs in `action(planner, state)`. In order to view the requirements for this function, please, supply an initial beleif to `requirements_info`, e.g.
 
@@ -7,7 +7,7 @@ function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::PO
         """)
 end
 
-function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::POMDP, b)
+function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::CPOMDP, b)
     policy = solve(solver, problem)
     requirements_info(policy, b)
 end
@@ -43,6 +43,6 @@ end
     @req discount(::P)
 end
 
-@POMDP_require estimate_value(f::Function, pomdp::POMDPs.POMDP, start_state, h::CBeliefNode, steps::Int) begin
+@POMDP_require estimate_value(f::Function, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
     @req f(::typeof(pomdp), ::typeof(start_state), ::typeof(h), ::typeof(steps))
 end

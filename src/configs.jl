@@ -17,8 +17,8 @@ models = Dict(
     #    sensor_efficiency=20.0,
     #    discount_factor=0.95, 
     #    good_rock_reward = 20.0),
-    RockSamplePOMDP(11,11),
-    RockSampleCPOMDP(11,11),
+    RockSamplePOMDP(5,5),
+    RockSampleCPOMDP(5,5),
     ),
 #    "vdptag" = (
 #    VDPTagPOMDP(),
@@ -37,8 +37,8 @@ models = Dict(
 # solvers: solver: (pomdp, cpomdp)
 solvers = Dict(
     "pomcp" => ( #POMCP
-        ::POMDP -> POMCPSolver(tree_queries=10000, c=10), 
-        ::POMDP -> CPOMCPSolver(tree_queries=10000, c=10)
+        ::POMDP -> POMCPSolver(tree_queries=10000, c=2), 
+        ::CPOMDP -> CPOMCPSolver(tree_queries=10000, c=2)
     ), 
     "pft" => ( #PFT-DPW
         p::POMDP -> BeliefMCTSSolver(DPWSolver(), SIRParticleFilter(p, 1000)),

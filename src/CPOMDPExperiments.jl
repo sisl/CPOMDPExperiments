@@ -16,8 +16,8 @@ using BasicPOMCP
 using MCTS # belief-mcts for belief dpw
 using POMCPOW
 
-using CRockSample
 using CPOMDPs
+using CRockSample
 using CMCTS
 using CPOMCP
 #using CPOMCPOW
@@ -41,22 +41,40 @@ end
 function generate_gif(p::POMDP, s, fname::String)
     try
         sim = GifSimulator(filename=fname, max_steps=30)
-        simulate(sim,p,s)
+        simulate(sim, p, s)
     catch err
         println("Simulation $(fname) failed")
     end
 end
 
-function problem_test(p::POMDP, solver_func::Function, name::String)
+function step_through(p::POMDP, planner::Policy, max_steps=100)
+    for (s, a, o, r) in stepthrough(p, planner, "s,a,o,r", max_steps=100)
+        print("State: $s, ")
+        print("Action: $a, ")
+        print("Observation: $o, ")
+        println("Reward: $r.")
+    end
+end
+
+# FIXME: fix simulators to add c
+function step_through(p::CPOMDP, planner::Policy, max_steps=100)
+    for (s, a, o, r) in stepthrough(p, planner, "s,a,o,r", max_steps=100)
+        print("State: $s, ")
+        print("Action: $a, ")
+        print("Observation: $o, ")
+        println("Reward: $r, ")
+        #println("Cost: $c.")
+    end
+end
+
+
+function problem_test(p::Union{POMDP,CPOMDP}, solver_func::Function, name::String)
     solver = solver_func(p)
     planner = solve(solver, p)
 
     # stepthrough
-    for (s, a, o) in stepthrough(p, planner, "s,a,o", max_steps=10)
-        println("State was $s,")
-        println("action $a was taken,")
-        println("and observation $o was received.\n")
-    end
+    step_through(p,planner)
+
     
     # gif
     generate_gif(p,planner,name)

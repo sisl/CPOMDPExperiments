@@ -2,6 +2,7 @@ module CRockSample
 
 using LinearAlgebra
 using POMDPs
+using CPOMDPs
 using POMDPModelTools
 using StaticArrays
 using Parameters
@@ -13,18 +14,18 @@ using DiscreteValueIteration
 using POMDPPolicies
 
 export
-    RockSampleCPOMDP #,
-    #RSPos,
-    #RSState,
-    #RSExit,
-    #RSExitSolver,
-    #RSMDPSolver,
-    #RSQMDPSolver
+    RockSampleCPOMDP,
+    CRSPos,
+    CRSState,
+    CRSExit,
+    CRSExitSolver,
+    CRSMDPSolver,
+    CRSQMDPSolver
 
-const RSPos = SVector{2, Int}
+const CRSPos = SVector{2, Int}
 
 """
-    RSState{K}
+    CRSState{K}
 Represents the state in a RockSampleCPOMDP problem. 
 `K` is an integer representing the number of rocks
 
@@ -32,26 +33,27 @@ Represents the state in a RockSampleCPOMDP problem.
 - `pos::RPos` position of the robot
 - `rocks::SVector{K, Bool}` the status of the rocks (false=bad, true=good)
 """
-struct RSState{K}
-    pos::RSPos 
+struct CRSState{K}
+    pos::CRSPos 
     rocks::SVector{K, Bool}
 end
 
-@with_kw struct RockSampleCPOMDP{K} <: POMDP{RSState{K}, Int, Int}
+@with_kw struct RockSampleCPOMDP{K} <: CPOMDP{CRSState{K}, Int, Int}
     map_size::Tuple{Int, Int} = (5,5)
-    rocks_positions::SVector{K,RSPos} = @SVector([(1,1), (3,3), (4,4)])
-    init_pos::RSPos = (1,1)
+    rocks_positions::SVector{K,CRSPos} = @SVector([(1,1), (3,3), (4,4)])
+    init_pos::CRSPos = (1,1)
     sensor_efficiency::Float64 = 20.0
     bad_rock_penalty::Float64 = -10
     good_rock_reward::Float64 = 10.
     step_penalty::Float64 = 0.
     sensor_use_penalty::Float64 = 0.
     exit_reward::Float64 = 10.
-    terminal_state::RSState{K} = RSState(RSPos(-1,-1),
+    terminal_state::CRSState{K} = CRSState(CRSPos(-1,-1),
                                          SVector{length(rocks_positions),Bool}(falses(length(rocks_positions))))
     # Some special indices for quickly retrieving the stateindex of any state
     indices::Vector{Int} = cumprod([map_size[1], map_size[2], fill(2, length(rocks_positions))...][1:end-1])
     discount_factor::Float64 = 0.95
+    bad_rock_cost_limit::Float64 = 1.
 end
 
 # to handle the case where rocks_positions is not a StaticArray
@@ -62,7 +64,7 @@ function RockSampleCPOMDP(map_size,
 
     k = length(rocks_positions)
     return RockSampleCPOMDP{k}(map_size,
-                              SVector{k,RSPos}(rocks_positions),
+                              SVector{k,CRSPos}(rocks_positions),
                               args...
                              )
 end
@@ -84,7 +86,7 @@ end
 # To handle the case where the `rocks_positions` is specified
 RockSampleCPOMDP(map_size::Tuple{Int, Int}, rocks_positions::AbstractVector) = RockSampleCPOMDP(map_size=map_size, rocks_positions=rocks_positions)
 
-POMDPs.isterminal(pomdp::RockSampleCPOMDP, s::RSState) = s.pos == pomdp.terminal_state.pos 
+POMDPs.isterminal(pomdp::RockSampleCPOMDP, s::CRSState) = s.pos == pomdp.terminal_state.pos 
 POMDPs.discount(pomdp::RockSampleCPOMDP) = pomdp.discount_factor
 
 include("states.jl")

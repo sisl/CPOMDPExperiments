@@ -32,7 +32,6 @@ Return the upper limits vector of the cost functions
 
 """
 function cost_limits end
-POMDPLinter.@impl_dep cost_limits(::P) where {P<:Union{CPOMDP,CMDP}}
 
 """
     cost_value(p::Policy, s)

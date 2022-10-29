@@ -3,7 +3,7 @@ const OBSERVATION_NAME = (:good, :bad, :none)
 POMDPs.observations(pomdp::RockSampleCPOMDP) = 1:3
 POMDPs.obsindex(pomdp::RockSampleCPOMDP, o::Int) = o
 
-function POMDPs.observation(pomdp::RockSampleCPOMDP, a::Int, s::RSState)
+function POMDPs.observation(pomdp::RockSampleCPOMDP, a::Int, s::CRSState)
     if a <= N_BASIC_ACTIONS
         # no obs
         return SparseCat((1,2,3), (0.0,0.0,1.0)) # for type stability

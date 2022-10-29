@@ -1,10 +1,10 @@
 module CPOMDPs
 
 using POMDPs
-using POMDPLinter
-#using POMDPModelTools
-
-import POMDPs: gen, @gen
+using Random
+import POMDPLinter
+#import POMDPs: @gen
+using Graphs: SimpleDiGraph, topological_sort_by_dfs, add_edge!
 
 export 
     
@@ -15,11 +15,10 @@ export
     # Model functions
     costs,
     cost_limits,
-    costs_value#,
+    costs_value,
 
     # generative model functions
-    #gen,
-    #@gen
+    @gen
 
 
 include("cpomdp.jl")

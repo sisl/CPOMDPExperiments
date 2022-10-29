@@ -5,16 +5,16 @@ const BASIC_ACTIONS_DICT = Dict(:north => 1,
                                 :west => 4,
                                 :sample => 5)
 
-const ACTION_DIRS = (RSPos(0,1),
-                    RSPos(1,0),
-                    RSPos(0,-1),
-                    RSPos(-1,0),
-                    RSPos(0,0))
+const ACTION_DIRS = (CRSPos(0,1),
+                    CRSPos(1,0),
+                    CRSPos(0,-1),
+                    CRSPos(-1,0),
+                    CRSPos(0,0))
 
 POMDPs.actions(pomdp::RockSampleCPOMDP{K}) where K = 1:N_BASIC_ACTIONS+K
 POMDPs.actionindex(pomdp::RockSampleCPOMDP, a::Int) = a
 
-function POMDPs.actions(pomdp::RockSampleCPOMDP{K}, s::RSState) where K
+function POMDPs.actions(pomdp::RockSampleCPOMDP{K}, s::CRSState) where K
     if in(s.pos, pomdp.rocks_positions) # slow? pomdp.rock_pos is a vec 
         return actions(pomdp)
     else

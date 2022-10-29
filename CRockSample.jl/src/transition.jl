@@ -1,4 +1,4 @@
-function POMDPs.transition(pomdp::RockSampleCPOMDP{K}, s::RSState{K}, a::Int) where K
+function POMDPs.transition(pomdp::RockSampleCPOMDP{K}, s::CRSState{K}, a::Int) where K
     if isterminal(pomdp, s)
         return Deterministic(pomdp.terminal_state)
     end
@@ -18,14 +18,14 @@ function POMDPs.transition(pomdp::RockSampleCPOMDP{K}, s::RSState{K}, a::Int) wh
         # the robot reached the exit area
         new_state = pomdp.terminal_state
     else
-        new_pos = RSPos(clamp(new_pos[1], 1, pomdp.map_size[1]), 
+        new_pos = CRSPos(clamp(new_pos[1], 1, pomdp.map_size[1]), 
                         clamp(new_pos[2], 1, pomdp.map_size[2]))
-        new_state = RSState{K}(new_pos, new_rocks)
+        new_state = CRSState{K}(new_pos, new_rocks)
     end
     return Deterministic(new_state)
 end
 
-function next_position(s::RSState, a::Int)
+function next_position(s::CRSState, a::Int)
     if a < N_BASIC_ACTIONS
         # the robot moves 
         return s.pos + ACTION_DIRS[a]

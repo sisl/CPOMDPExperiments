@@ -1,4 +1,4 @@
-function POMDPs.stateindex(pomdp::RockSampleCPOMDP{K}, s::RSState{K}) where K
+function POMDPs.stateindex(pomdp::RockSampleCPOMDP{K}, s::CRSState{K}) where K
     if isterminal(pomdp, s)
         return length(pomdp)
     end
@@ -12,9 +12,9 @@ function state_from_index(pomdp::RockSampleCPOMDP{K}, si::Int) where K
     rocks_dim = @SVector fill(2, K)
     nx, ny = pomdp.map_size
     s = CartesianIndices((nx, ny, rocks_dim...))[si]
-    pos = RSPos(s[1], s[2])
+    pos = CRSPos(s[1], s[2])
     rocks = SVector{K, Bool}(s.I[3:(K+2)] .- 1)
-    return RSState{K}(pos, rocks)
+    return CRSState{K}(pos, rocks)
 end
 
 # the state space is the pomdp itself
@@ -33,9 +33,9 @@ end
 
 function POMDPs.initialstate(pomdp::RockSampleCPOMDP{K}) where K
     probs = normalize!(ones(2^K), 1)
-    states = Vector{RSState{K}}(undef, 2^K)
+    states = Vector{CRSState{K}}(undef, 2^K)
     for (i,rocks) in enumerate(Iterators.product(ntuple(x->[false, true], K)...))
-        states[i] = RSState{K}(pomdp.init_pos, SVector(rocks))
+        states[i] = CRSState{K}(pomdp.init_pos, SVector(rocks))
     end
     return SparseCat(states, probs)
 end

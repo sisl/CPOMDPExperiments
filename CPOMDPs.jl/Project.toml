@@ -4,4 +4,7 @@ authors = ["Arec Jamgochian <jamgochian95@gmail.com>"]
 version = "0.1.0"
 
 [deps]
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+POMDPLinter = "f3bd98c0-eb40-45e2-9eb1-f2763262d755"
 POMDPs = "a93abf59-7444-517b-a68a-c42f96afdd7d"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"

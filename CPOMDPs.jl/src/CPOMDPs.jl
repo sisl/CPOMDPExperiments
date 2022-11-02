@@ -15,10 +15,7 @@ export
     # Model functions
     costs,
     cost_limits,
-    costs_value,
-
-    # generative model functions
-    @gen
+    costs_value
 
 
 include("cpomdp.jl")

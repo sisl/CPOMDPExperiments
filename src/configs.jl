@@ -1,4 +1,4 @@
-MODELS = ["rocksample", "lightdark1d", "roomba"]
+MODELS = ["rocksample", "lightdark1d", "vdptag", "roomba"]
 SOLVERS = ["pomcp", "pft", "pomcpow"]
 
 # model list. environment:(pomdp, cpomdp)
@@ -20,10 +20,10 @@ models = Dict(
     RockSamplePOMDP(5,5),
     RockSampleCPOMDP(5,5),
     ),
-#    "vdptag" = (
-#    VDPTagPOMDP(),
-#    VDPTagPOMDP(),
-#    ),
+    "vdptag" => (
+    VDPTagPOMDP(),
+    VDPTagPOMDP(),
+    ),
     "lightdark1d" => (
     LightDark1D(),
     LightDark1D(),

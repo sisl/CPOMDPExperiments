@@ -8,19 +8,21 @@ using ParticleFilters
 
 # non-constrained baseline
 using POMDPs
-using POMDPModels
-using RockSample
-#using VDPTag2
-using RoombaPOMDPs
 using BasicPOMCP
 using MCTS # belief-mcts for belief dpw
 using POMCPOW
 
 using CPOMDPs
-using CRockSample
 using CMCTS
 using CPOMCP
 #using CPOMCPOW
+
+# models 
+using POMDPModels
+using RockSample
+using VDPTag2
+using RoombaPOMDPs
+
 using CRockSample
 
 export

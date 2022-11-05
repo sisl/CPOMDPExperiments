@@ -2,7 +2,7 @@ function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::CP
     println("""
     Since CPOMCP is an online solver, most of the computation occurs in `action(planner, state)`. In order to view the requirements for this function, please, supply an initial beleif to `requirements_info`, e.g.
 
-            @requirements_info $(typeof(solver))() $(typeof(problem))() initialstate(pomdp)
+            @requirements_info $(typeof(solver))() $(typeof(problem))() initialstate(cpomdp)
 
         """)
 end
@@ -39,8 +39,26 @@ end
     @req actions(::P)
     AS = typeof(actions(p.problem))
     @req length(::AS)
-    @subreq estimate_value(p.solved_estimator, p.problem, s, hnode, steps)
+    # @subreq estimate_value(p.solved_estimator, p.problem, s, hnode, steps) # FIXME
     @req discount(::P)
+end
+
+@POMDP_require estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
+    @subreq rollout(estimator, pomdp, start_state, h, steps)
+end
+
+@POMDP_require rollout(est::SolvedCPORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
+    @req extract_belief(::typeof(est.updater), ::typeof(h))
+    b = extract_belief(est.updater, h)
+    sim = RolloutSimulator(est.rng,
+                           steps)
+    @subreq POMDPs.simulate(sim, pomdp, est.policy, est.updater, b, start_state)
+end
+
+@POMDP_require rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
+    sim = RolloutSimulator(est.rng,
+                                        steps)
+    @subreq POMDPs.simulate(sim, pomdp, est.policy, start_state)
 end
 
 @POMDP_require estimate_value(f::Function, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin

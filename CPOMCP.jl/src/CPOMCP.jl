@@ -9,7 +9,10 @@ Current constraints:
 =#
 
 using POMDPs
+using BasicPOMCP
+
 using CPOMDPs
+
 using Parameters
 using ParticleFilters
 using CPUTime
@@ -28,47 +31,34 @@ import MCTS: convert_estimator, estimate_value, node_tag, tooltip_tag, default_a
 using D3Trees
 
 export
+    # here
+    AbstractCPOMCPSolver,
     CPOMCPSolver,
     CPOMCPPlanner,
-
-    action,
-    solve,
     updater,
+    solve,
 
-    NoDecision,
-    AllSamplesTerminal,
-    ExceptionRethrow,
-    ReportWhenUsed,
-    default_action,
+    # solver
+    action,
+    AlphaSchedule,
+    InverseAlphaSchedule,
+    ConstantAlphaSchedule,
 
-    CBeliefNode,
-    LeafNodeBelief,
-    AbstractCPOMCPSolver,
-
+    # rollout
     CPORollout,
     CFORollout,
     CRolloutEstimator,
     CFOValue,
 
+    # visualization
     D3Tree,
+
+    # reexport
     node_tag,
     tooltip_tag,
-
-    # deprecated
-    AOHistoryBelief
+    default_action
 
 abstract type AbstractCPOMCPSolver <: Solver end
-mutable struct CRolloutEstimator
-    solver::Union{Solver,Policy,Function} # rollout policy or solver
-    max_depth::Union{Int, Nothing}
-    eps::Union{Float64, Nothing}
-
-    function CRolloutEstimator(solver::Union{Solver,Policy,Function};
-                               max_depth::Union{Int, Nothing}=50,
-                               eps::Union{Float64, Nothing}=nothing)
-        new(solver, max_depth, eps)
-    end
-end
 
 """
     CPOMCPSolver(#=keyword arguments=#)
@@ -119,12 +109,14 @@ Partially Observable Monte Carlo Planning Solver.
 @with_kw mutable struct CPOMCPSolver <: AbstractCPOMCPSolver
     max_depth::Int          = 20
     c::Float64              = 1.0
+    nu::Float64             = 0.01 # slack to give when searching for multiple best actions
     tree_queries::Int       = 1000
     max_time::Float64       = Inf
     tree_in_info::Bool      = false
     default_action::Any     = ExceptionRethrow()
     rng::AbstractRNG        = Random.GLOBAL_RNG
-    estimate_value::Any     = CRolloutEstimator(RandomSolver(rng))
+    alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
+    estimate_value::Any     = CRolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
 end
 
 struct CPOMCPTree{A,O}
@@ -138,11 +130,17 @@ struct CPOMCPTree{A,O}
     # for each action-terminated history
     n::Vector{Int}                       # number of visits for an action node
     v::Vector{Float64}                   # value estimate for an action node
+    cv::Vector{Vector{Float64}}          # cost estimates for an action node
     a_labels::Vector{A}                  # actual action corresponding to this action node
+
+    # constraints
+    n_costs::Int                         # number of costs
+    top_level_costs::Vector{Vector{Float64}}    # top-level average cost (only if step)
 end
 
 function CPOMCPTree(pomdp::CPOMDP, b, sz::Int=1000)
     acts = collect(actions(pomdp, b))
+    cons = n_costs(pomdp)
     A = actiontype(pomdp)
     O = obstype(pomdp)
     sz = min(100_000, sz)
@@ -154,38 +152,13 @@ function CPOMCPTree(pomdp::CPOMDP, b, sz::Int=1000)
 
                           sizehint!(zeros(Int, length(acts)), sz),
                           sizehint!(zeros(Float64, length(acts)), sz),
-                          sizehint!(acts, sz)
+                          sizehint!(repeat([zeros(Float64,cons)], acts), sz), # cv
+                          sizehint!(acts, sz),
+
+                          cons,
+                          repeat([zeros(Float64,cons)], acts) # top_level_costs
                          )
 end
-
-struct LeafNodeBelief{H, S} <: AbstractParticleBelief{S}
-    hist::H
-    sp::S
-end
-POMDPs.currentobs(h::LeafNodeBelief) = h.hist[end].o
-POMDPs.history(h::LeafNodeBelief) = h.hist
-
-# particle belief interface
-ParticleFilters.n_particles(b::LeafNodeBelief) = 1
-ParticleFilters.particles(b::LeafNodeBelief) = (b.sp,)
-ParticleFilters.weights(b::LeafNodeBelief) = (1.0,)
-ParticleFilters.weighted_particles(b::LeafNodeBelief) = (b.sp=>1.0,)
-ParticleFilters.weight_sum(b::LeafNodeBelief) = 1.0
-ParticleFilters.weight(b::LeafNodeBelief, i) = i == 1 ? 1.0 : 0.0
-
-function ParticleFilters.particle(b::LeafNodeBelief, i)
-    @assert i == 1
-    return b.sp
-end
-
-POMDPs.mean(b::LeafNodeBelief) = b.sp
-POMDPs.mode(b::LeafNodeBelief) = b.sp
-POMDPs.support(b::LeafNodeBelief) = (b.sp,)
-POMDPs.pdf(b::LeafNodeBelief{<:Any, S}, s::S) where S = float(s == b.sp)
-POMDPs.rand(rng::AbstractRNG, s::Random.SamplerTrivial{<:LeafNodeBelief}) = s[].sp
-
-# old deprecated name
-const AOHistoryBelief = LeafNodeBelief
 
 function insert_obs_node!(t::CPOMCPTree, pomdp::CPOMDP, ha::Int, sp, o)
     acts = actions(pomdp, LeafNodeBelief(tuple((a=t.a_labels[ha], o=o)), sp))
@@ -205,12 +178,11 @@ function insert_action_node!(t::CPOMCPTree, h::Int, a)
     push!(t.n, 0)
     push!(t.v, 0.0)
     push!(t.a_labels, a)
+    push!(t.cv, zeros(Float64, t.n_costs))
     return length(t.n)
 end
 
-abstract type CBeliefNode <: AbstractStateNode end
-
-struct POMCPObsNode{A,O} <: CBeliefNode
+struct CPOMCPObsNode{A,O} <: BeliefNode
     tree::CPOMCPTree{A,O}
     node::Int
 end
@@ -220,24 +192,44 @@ mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
     problem::P
     solved_estimator::SE
     rng::RNG
+    budget::Vector{Float64}     # remaining budget for constraint search
     _best_node_mem::Vector{Int}
     _tree::Union{Nothing, Any}
+    _cost_mem::Float64          # estimate for one-step cost
+    _lambda::Union{Nothing,Vector{Float64}}    # weights for dual ascent
+    _tau::Vector{Float64}       # clips for dual ascent
 end
 
 function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
-    se = convert_estimator(solver.estimate_value, solver, pomdp)
-    return CPOMCPPlanner(solver, pomdp, se, solver.rng, Int[], nothing)
+    se = convert_estimator(solver.estimate_value, solver, pomdp) # FIXME
+    return CPOMCPPlanner(solver, pomdp, se, solver.rng, 
+        costs_limit(pomdp), Int[], nothing, 0., nothing, pomdp.costs_limit)
 end
+
+solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
 Random.seed!(p::CPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
 
+struct BudgetUpdateWrapper
+    belief_updater::Updater
+    planner::CPOMCPPlanner
+end
+
+function update(up::BudgetUpdateWrapper, b, a, o)
+    if up.planner._tree != nothing
+        up.planner.budget = (up.planner.budget - up.planner._cost_mem)/discount(up.planner.problem)
+    end
+    return update(up.belief_updater, a, o)
+end
 
 function updater(p::CPOMCPPlanner)
     P = typeof(p.problem)
     S = statetype(P)
     A = actiontype(P)
     O = obstype(P)
-    return UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
+    # p.budget = (p.budget - c)/discount(p.problem)
+    return BudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
+        p)
     # XXX It would be better to automatically use an SIRParticleFilter if possible
     # if !@implemented ParticleFilters.obs_weight(::P, ::S, ::A, ::S, ::O)
     #     return UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
@@ -246,10 +238,8 @@ function updater(p::CPOMCPPlanner)
 end
 
 include("solver.jl")
-
-include("exceptions.jl")
 include("rollout.jl")
 include("visualization.jl")
-include("requirements_info.jl")
+# include("requirements_info.jl")
 
 end # module

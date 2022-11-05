@@ -1,3 +1,16 @@
+
+mutable struct CRolloutEstimator
+    solver::Union{Solver,Policy,Function} # rollout policy or solver
+    max_depth::Union{Int, Nothing}
+    eps::Union{Float64, Nothing}
+
+    function CRolloutEstimator(solver::Union{Solver,Policy,Function};
+                               max_depth::Union{Int, Nothing}=50,
+                               eps::Union{Float64, Nothing}=nothing)
+        new(solver, max_depth, eps)
+    end
+end
+
 struct CPORollout
     solver::Union{POMDPs.Solver,POMDPs.Policy,Function}
     updater::POMDPs.Updater
@@ -41,10 +54,6 @@ function estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pom
     rollout(estimator, pomdp, start_state, h, steps)
 end
 
-@POMDP_require estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
-    @subreq rollout(estimator, pomdp, start_state, h, steps)
-end
-
 function estimate_value(estimator::SolvedCFOValue, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
     POMDPs.value(estimator.policy, start_state)
 end
@@ -81,13 +90,6 @@ function rollout(est::SolvedCPORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::C
     return POMDPs.simulate(sim, pomdp, est.policy, est.updater, b, start_state)
 end
 
-@POMDP_require rollout(est::SolvedCPORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
-    @req extract_belief(::typeof(est.updater), ::typeof(h))
-    b = extract_belief(est.updater, h)
-    sim = RolloutSimulator(est.rng,
-                           steps)
-    @subreq POMDPs.simulate(sim, pomdp, est.policy, est.updater, b, start_state)
-end
 
 
 function rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
@@ -95,13 +97,6 @@ function rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::C
                                         steps)
     return POMDPs.simulate(sim, pomdp, est.policy, start_state)
 end
-
-@POMDP_require rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) begin
-    sim = RolloutSimulator(est.rng,
-                                        steps)
-    @subreq POMDPs.simulate(sim, pomdp, est.policy, start_state)
-end
-
 
 
 """
@@ -111,15 +106,15 @@ Return a belief compatible with the `rollout_updater` from the belief in `node`.
 
 When a rollout simulation is started, this function is used to create the initial belief (compatible with `rollout_updater`) based on the appropriate `CBeliefNode` at the edge of the tree. By overriding this, a belief can be constructed based on the entire tree or entire observation-action history.
 """
-function extract_belief end
+#function extract_belief end
 
 # some defaults are provided
-extract_belief(::NothingUpdater, node::CBeliefNode) = nothing
-
-function extract_belief(::PreviousObservationUpdater, node::CBeliefNode)
-    if node.node==1 && !isdefined(node.tree.o_labels, node.node)
-        missing
-    else
-        node.tree.o_labels[node.node]
-    end
-end
+# extract_belief(::NothingUpdater, node::CBeliefNode) = nothing
+#
+#function extract_belief(::PreviousObservationUpdater, node::CBeliefNode)
+#    if node.node==1 && !isdefined(node.tree.o_labels, node.node)
+#        missing
+#    else
+#        node.tree.o_labels[node.node]
+#    end
+#end

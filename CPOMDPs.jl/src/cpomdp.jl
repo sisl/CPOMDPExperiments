@@ -26,12 +26,12 @@ costs(m::Union{POMDP,MDP}, s, a, sp, o) = costs(m, s, a, sp)
 POMDPLinter.@impl_dep costs(::P,::S,::A,::S,::O) where {P<:Union{CPOMDP,CMDP},S,A,O} costs(::P,::S,::A,::S)
 
 """
-    cost_limits(m::Union{CPOMDP,CMDP})
+    costs_budget(m::Union{CPOMDP,CMDP})
 
 Return the upper limits vector of the cost functions
 
 """
-function cost_limits end
+function costs_budget end
 
 """
     cost_value(p::Policy, s)
@@ -40,3 +40,9 @@ Returns the cost value from policy `p` given the state (or belief), or state-act
 """
 function costs_value end
     
+"""
+    ncosts(m::Union{CPOMDP,CMDP})
+
+Return the number of constraints
+"""
+function n_costs end

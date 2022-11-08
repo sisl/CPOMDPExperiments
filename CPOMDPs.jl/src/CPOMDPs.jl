@@ -1,11 +1,11 @@
 module CPOMDPs
-
-using POMDPs
+using Reexport
+@reexport using POMDPs
 using Random
 import POMDPLinter
-#import POMDPs: @gen
-using Graphs: SimpleDiGraph, topological_sort_by_dfs, add_edge!
-import POMDPs: gen, @gen
+import POMDPs: simulate
+import ModelTools: UnderlyingMDP # for ConstrainedRollout
+
 
 export 
     
@@ -19,12 +19,20 @@ export
     costs_budget,
     costs_value
 
+    # Generative functions
     # gen,
-    gen,
-    @gen
+    # @gen
 
 
 include("cpomdp.jl")
 include("gen.jl")
+
+# ModelTools
+# including ConstrainedRolloutSimulator, its simulate functions, and UnderlyingCMDP
+export 
+    ConstrainedRolloutSimulators,
+    simulate,
+    UnderlyingCMDP
+include("rollout.jl")
 
 end # module

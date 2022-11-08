@@ -27,6 +27,7 @@ import POMDPLinter
 
 using MCTS
 import MCTS: convert_estimator, estimate_value, node_tag, tooltip_tag, default_action
+import BasicPOMCP: estimate_value, rollout, extract_belief
 
 using D3Trees
 
@@ -43,20 +44,12 @@ export
     AlphaSchedule,
     InverseAlphaSchedule,
     ConstantAlphaSchedule,
-
-    # rollout
-    CPORollout,
-    CFORollout,
-    CRolloutEstimator,
-    CFOValue,
+    default_action,
 
     # visualization
     D3Tree,
-
-    # reexport
     node_tag,
-    tooltip_tag,
-    default_action
+    tooltip_tag
 
 abstract type AbstractCPOMCPSolver <: Solver end
 
@@ -89,7 +82,7 @@ Partially Observable Monte Carlo Planning Solver.
 
 - `estimate_value::Any`
     Function, object, or number used to estimate the value at the leaf nodes.
-    default: `CRolloutEstimator(RandomSolver(rng))`
+    default: `RolloutEstimator(RandomSolver(rng))`
     - If this is a function `f`, `f(pomdp, s, h::CBeliefNode, steps)` will be called to estimate the value.
     - If this is an object `o`, `estimate_value(o, pomdp, s, h::CBeliefNode, steps)` will be called.
     - If this is a number, the value will be set to that number
@@ -116,7 +109,7 @@ Partially Observable Monte Carlo Planning Solver.
     default_action::Any     = ExceptionRethrow()
     rng::AbstractRNG        = Random.GLOBAL_RNG
     alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
-    estimate_value::Any     = CRolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
+    estimate_value::Any     = RolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
 end
 
 struct CPOMCPTree{A,O}

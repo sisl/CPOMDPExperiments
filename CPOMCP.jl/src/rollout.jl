@@ -47,15 +47,15 @@ Return an initial unbiased estimate of the value at belief node h.
 By default this runs a rollout simulation
 """
 function estimate_value end
-estimate_value(f::Function, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = f(pomdp, start_state, h, steps)
-estimate_value(n::Number, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = convert(Float64, n)
+#estimate_value(f::Function, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = f(pomdp, start_state, h, steps)
+#estimate_value(n::Number, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int) = convert(Float64, n)
 
-function estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
+function estimate_value(estimator::Union{SolvedCPORollout,SolvedCFORollout}, pomdp::CPOMDPs.CPOMDP, start_state, h::BeliefNode, steps::Int)
     rollout(estimator, pomdp, start_state, h, steps)
 end
 
-function estimate_value(estimator::SolvedCFOValue, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
-    POMDPs.value(estimator.policy, start_state)
+function estimate_value(estimator::SolvedCFOValue, pomdp::CPOMDPs.CPOMDP, start_state, h::BeliefNode, steps::Int)
+    return POMDPs.value(estimator.policy, start_state), CPOMDPs.cost_value(estimator.policy, start_state)
 end
 
 
@@ -93,28 +93,6 @@ end
 
 
 function rollout(est::SolvedCFORollout, pomdp::CPOMDPs.CPOMDP, start_state, h::CBeliefNode, steps::Int)
-    sim = RolloutSimulator(est.rng,
-                                        steps)
+    sim = RolloutSimulator(est.rng, steps)
     return POMDPs.simulate(sim, pomdp, est.policy, start_state)
 end
-
-
-"""
-    extract_belief(rollout_updater::POMDPs.Updater, node::CBeliefNode)
-
-Return a belief compatible with the `rollout_updater` from the belief in `node`.
-
-When a rollout simulation is started, this function is used to create the initial belief (compatible with `rollout_updater`) based on the appropriate `CBeliefNode` at the edge of the tree. By overriding this, a belief can be constructed based on the entire tree or entire observation-action history.
-"""
-#function extract_belief end
-
-# some defaults are provided
-# extract_belief(::NothingUpdater, node::CBeliefNode) = nothing
-#
-#function extract_belief(::PreviousObservationUpdater, node::CBeliefNode)
-#    if node.node==1 && !isdefined(node.tree.o_labels, node.node)
-#        missing
-#    else
-#        node.tree.o_labels[node.node]
-#    end
-#end

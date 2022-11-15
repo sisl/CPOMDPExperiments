@@ -26,12 +26,12 @@ costs(m::Union{POMDP,MDP}, s, a, sp, o) = costs(m, s, a, sp)
 POMDPLinter.@impl_dep costs(::P,::S,::A,::S,::O) where {P<:Union{CPOMDP,CMDP},S,A,O} costs(::P,::S,::A,::S)
 
 """
-    costs_budget(m::Union{CPOMDP,CMDP})
+    costs_limit(m::Union{CPOMDP,CMDP})
 
 Return the upper limits vector of the cost functions
 
 """
-function costs_budget end
+function costs_limit end
 
 """
     cost_value(p::Policy, s)
@@ -46,3 +46,19 @@ function costs_value end
 Return the number of constraints
 """
 function n_costs end
+
+"""
+    min_reward(m::Union{CPOMDP,CMDP})
+
+Return the minimum single-step reward
+
+"""
+function min_reward end
+
+"""
+    max_reward(m::Union{CPOMDP,CMDP})
+
+Return the maximum single-step reward
+
+"""
+function max_reward end

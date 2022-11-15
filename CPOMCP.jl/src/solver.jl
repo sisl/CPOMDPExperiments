@@ -21,8 +21,6 @@ end
 
 action(p::CPOMCPPlanner, b) = first(action_info(p, b))
 
-abstract type AlphaSchedule end
-
 struct ConstantAlphaSchedule <: AlphaSchedule 
     scale::Float32
 end
@@ -39,8 +37,8 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     all_terminal = true
     nquery = 0
     start_us = CPUtime_us()
-    max_clip = (max_reward(p.problem) - min_reward(p.problem))/discount(p.problem) ./ p.tau
-    p._lambda = rand(p.rng, p._tree.n_costs) .* max_clip # random initialization
+    max_clip = (max_reward(p.problem) - min_reward(p.problem))/discount(p.problem) ./ p._tau
+    p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
 
     for i in 1:p.solver.tree_queries
         nquery += 1
@@ -69,6 +67,8 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     return action_policy_UCB(CPOMCPObsNode(t,1), p._lambda, 0.0, p.solver.nu)
 end
 
+dot(a::Vector,b::Vector) = sum(a .* b)
+
 # return sparse categorical policy over best action node indices
 function action_policy_UCB(hnode::CPOMCPObsNode, lambda::Vector{Float64}, c::Float64, nu::Float64)
     t = hnode.tree
@@ -76,17 +76,17 @@ function action_policy_UCB(hnode::CPOMCPObsNode, lambda::Vector{Float64}, c::Flo
 
     # Q_lambda = Q_value - lambda'Q_c + c sqrt(log(N)/N(h,a))
     ltn = log(t.total_n[h])
-    best_nodes = empty!(p._best_node_mem)
+    best_nodes = Int[]
     criterion_values = sizehint!(Float64[],length(t.children[h]))
     best_criterion_val = -Inf
     for node in t.children[h]
         n = t.n[node]
         if n == 0 && ltn <= 0.0
-            criterion_value = t.v[node] - dot(lambda,t.ch[node])
+            criterion_value = t.v[node] - dot(lambda,t.cv[node])
         elseif n == 0 && t.v[node] == -Inf
             criterion_value = Inf
         else
-            criterion_value = t.v[node] - dot(lambda,t.ch[node])
+            criterion_value = t.v[node] - dot(lambda,t.cv[node])
             if c > 0
                 criterion_value += c*sqrt(ltn/n)
             end
@@ -116,7 +116,9 @@ function action_policy_UCB(hnode::CPOMCPObsNode, lambda::Vector{Float64}, c::Flo
 end
 
 function solve_lp(t::CPOMCPTree, best_nodes::Vector{Int})
-    error("Multiple CPOMCP best actions not implemented")
+    # error("Multiple CPOMCP best actions not implemented")
+    # random for now
+    return ones(Float64, length(best_nodes)) / length(best_nodes)
 end
 
 function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
@@ -124,11 +126,13 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
         return 0.0
     end
 
+    t = hnode.tree
+    h = hnode.node
     acts = action_policy_UCB(hnode, p._lambda, p.solver.c, p.solver.nu)
-    
+    p._best_node_mem = acts.vals
     ha = rand(p.rng, acts)
     a = t.a_labels[ha]
-
+    @infiltrate
     sp, o, r, c = @gen(:sp, :o, :r, :c)(p.problem, s, a, p.rng)
     
     hao = get(t.o_lookup, (ha, o), 0)

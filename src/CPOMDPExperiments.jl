@@ -1,5 +1,7 @@
 module CPOMDPExperiments
 
+using Infiltrator
+
 using ProgressMeter
 using POMDPSimulators
 using POMDPGifs
@@ -50,7 +52,7 @@ function generate_gif(p::POMDP, s, fname::String)
 end
 
 function step_through(p::POMDP, planner::Policy, max_steps=100)
-    for (s, a, o, r) in stepthrough(p, planner, "s,a,o,r", max_steps=100)
+    for (s, a, o, r) in stepthrough(p, planner, "s,a,o,r", max_steps=max_steps)
         print("State: $s, ")
         print("Action: $a, ")
         print("Observation: $o, ")
@@ -58,14 +60,14 @@ function step_through(p::POMDP, planner::Policy, max_steps=100)
     end
 end
 
-# FIXME: fix simulators to add c
 function step_through(p::CPOMDP, planner::Policy, max_steps=100)
-    for (s, a, o, r) in stepthrough(p, planner, "s,a,o,r", max_steps=100)
+    #@infiltrate
+    for (s, a, o, r, c) in stepthrough(p, planner, "s,a,o,r,c", max_steps=max_steps)
         print("State: $s, ")
         print("Action: $a, ")
         print("Observation: $o, ")
         println("Reward: $r, ")
-        #println("Cost: $c.")
+        println("Cost: $c.")
     end
 end
 

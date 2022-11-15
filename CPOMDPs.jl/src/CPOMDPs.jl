@@ -1,10 +1,12 @@
 module CPOMDPs
-using Reexport
-@reexport using POMDPs
+#using Reexport
+#@reexport using POMDPs
+using POMDPs
 using Random
 import POMDPLinter
-import POMDPs: simulate
-import ModelTools: UnderlyingMDP # for ConstrainedRollout
+import POMDPs: simulate, gen, @gen
+using POMDPTools
+import POMDPTools: UnderlyingMDP, stepthrough # for ConstrainedRollout
 
 
 export 
@@ -16,12 +18,14 @@ export
     # Model functions
     costs,
     n_costs,
-    costs_budget,
-    costs_value
+    costs_limit,
+    costs_value,
+    min_reward,
+    max_reward,
 
     # Generative functions
-    # gen,
-    # @gen
+    gen, 
+    @gen
 
 
 include("cpomdp.jl")
@@ -32,7 +36,8 @@ include("gen.jl")
 export 
     ConstrainedRolloutSimulators,
     simulate,
-    UnderlyingCMDP
+    UnderlyingCMDP,
+    stepthrough
 include("rollout.jl")
 
 end # module

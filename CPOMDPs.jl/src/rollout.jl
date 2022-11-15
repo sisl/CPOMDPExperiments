@@ -33,13 +33,13 @@ function RolloutSimulator(;rng=Random.GLOBAL_RNG,
 end
 
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy) begin
     @req updater(::typeof(policy))
     bu = updater(policy)
     @subreq simulate(sim, pomdp, policy, bu)
 end
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, bu::Updater) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, bu::Updater) begin
     @req initialstate(::typeof(pomdp))
     dist = initialstate(pomdp)
     @subreq simulate(sim, pomdp, policy, bu, dist)
@@ -51,7 +51,7 @@ function simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Polic
 end
 
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, updater::Updater, initial_belief) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, updater::Updater, initial_belief) begin
     @req rand(::typeof(sim.rng), ::typeof(initial_belief))
     @subreq simulate(sim, pomdp, policy, updater, initial_belief, s)
 end
@@ -61,7 +61,7 @@ function simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP{S}, policy::Po
     return simulate(sim, pomdp, policy, updater, initial_belief, s)
 end
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, updater::Updater, initial_belief, s) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Policy, updater::Updater, initial_belief, s) begin
     P = typeof(pomdp)
     S = statetype(P)
     A = actiontype(P)
@@ -117,12 +117,12 @@ function simulate(sim::ConstrainedRolloutSimulator, pomdp::CPOMDP, policy::Polic
     return r_total, c_total
 end
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, mdp::CMDP, policy::Policy) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, mdp::CMDP, policy::Policy) begin
     istate = initialstate(mdp, sim.rng)
     @subreq simulate(sim, mdp, policy, istate)
 end
 
-@POMDP_require simulate(sim::ConstrainedRolloutSimulator, mdp::CMDP, policy::Policy, initialstate) begin
+POMDPLinter.@POMDP_require simulate(sim::ConstrainedRolloutSimulator, mdp::CMDP, policy::Policy, initialstate) begin
     P = typeof(mdp)
     S = typeof(initialstate)
     A = actiontype(mdp)
@@ -214,3 +214,37 @@ POMDPs.actionindex(mdp::UnderlyingCMDP{P, S, A}, a::A) where {P,S,A} = actionind
 POMDPs.actionindex(mdp::UnderlyingCMDP{P,S, Int}, a::Int) where {P,S} = actionindex(mdp.cpomdp, a)
 POMDPs.actionindex(mdp::UnderlyingCMDP{P,S, Bool}, a::Bool) where {P,S} = actionindex(mdp.cpomdp, a)
 POMDPs.gen(mdp::UnderlyingCMDP, s, a, rng) = gen(mdp.cpomdp, s, a, rng)
+
+
+# stepthrough functions
+POMDPTools.Simulators.default_spec(T::Type{M}) where M <: CMDP = tuple(:s, :a, :sp, :r, :c, :info, :t, :action_info)
+POMDPTools.Simulators.default_spec(T::Type{M}) where M <: CPOMDP = tuple(:s, :a, :sp, :o, :r, :c, :info, :t, :action_info, :b, :bp, :update_info)
+POMDPTools.Simulators.convert_spec(spec, T::Type{M}) where {M<:CPOMDP} = POMDPTools.Simulators.convert_spec(spec, Set(tuple(:s, :a, :sp, :o, :r, :c, :info, :bp, :b, :action_info, :update_info, :t)))
+POMDPTools.Simulators.convert_spec(spec, T::Type{M}) where {M<:CMDP} = POMDPTools.Simulators.convert_spec(spec, Set(tuple(:s, :a, :sp, :r, :c, :info, :action_info, :t)))
+
+function Base.iterate(it::POMDPTools.Simulators.MDPSimIterator{SPEC,M}, is::Tuple{Int, S}=(1, it.init_state)) where {SPEC, M<:CMDP, S}
+    if isterminal(it.mdp, is[2]) || is[1] > it.max_steps 
+        return nothing 
+    end 
+    t = is[1]
+    s = is[2]
+    a, ai = action_info(it.policy, s)
+    out = @gen(:sp,:r,:c,:info)(it.mdp, s, a, it.rng)
+    nt = merge(NamedTuple{(:sp,:r,:c,:info)}(out), (t=t, s=s, a=a, action_info=ai))
+    return (out_tuple(it, nt), (t+1, nt.sp))
+end
+
+function Base.iterate(it::POMDPTools.Simulators.POMDPSimIterator{SPEC,M}, is::Tuple{Int,S,B} = (1, it.init_state, it.init_belief)) where {SPEC, M<:CPOMDP, S,B}
+    if isterminal(it.pomdp, is[2]) || is[1] > it.max_steps 
+        return nothing 
+    end 
+    t = is[1]
+    s = is[2]
+    b = is[3]
+    a, ai = action_info(it.policy, b)
+    out = @gen(:sp,:o,:r,:c,:info)(it.pomdp, s, a, it.rng)
+    outnt = NamedTuple{(:sp,:o,:r,:c,:info)}(out)
+    bp, ui = update_info(it.updater, b, a, outnt.o)
+    nt = merge(outnt, (t=t, b=b, s=s, a=a, action_info=ai, bp=bp, update_info=ui))
+    return (out_tuple(it, nt), (t+1, nt.sp, nt.bp))
+end

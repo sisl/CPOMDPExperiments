@@ -12,18 +12,18 @@ using POMDPs
 using BasicPOMCP
 
 using CPOMDPs
-
+using Infiltrator
 using Parameters
 using ParticleFilters
 using CPUTime
 using Colors
 using Random
 using Printf
-using POMDPLinter: @POMDP_require, @show_requirements
+using POMDPLinter
 using POMDPTools
 
 import POMDPs: action, solve, updater
-import POMDPLinter
+import POMDPLinter: @POMDP_require, @show_requirements
 
 using MCTS
 import MCTS: convert_estimator, estimate_value, node_tag, tooltip_tag, default_action
@@ -52,6 +52,7 @@ export
     tooltip_tag
 
 abstract type AbstractCPOMCPSolver <: Solver end
+abstract type AlphaSchedule end
 
 """
     CPOMCPSolver(#=keyword arguments=#)
@@ -145,11 +146,11 @@ function CPOMCPTree(pomdp::CPOMDP, b, sz::Int=1000)
 
                           sizehint!(zeros(Int, length(acts)), sz),
                           sizehint!(zeros(Float64, length(acts)), sz),
-                          sizehint!(repeat([zeros(Float64,cons)], acts), sz), # cv
+                          sizehint!(repeat([zeros(Float64,cons)], length(acts)), sz), # cv
                           sizehint!(acts, sz),
 
                           cons,
-                          repeat([zeros(Float64,cons)], acts) # top_level_costs
+                          repeat([zeros(Float64,cons)], length(acts)) # top_level_costs
                          )
 end
 
@@ -194,16 +195,16 @@ mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
 end
 
 function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
-    se = convert_estimator(solver.estimate_value, solver, pomdp) # FIXME
+    se = convert_estimator(solver.estimate_value, solver, pomdp) # FIXME??
     return CPOMCPPlanner(solver, pomdp, se, solver.rng, 
-        costs_limit(pomdp), Int[], nothing, 0., nothing, pomdp.costs_limit)
+        costs_limit(pomdp), Int[], nothing, 0., nothing, costs_limit(pomdp))
 end
 
 solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
 Random.seed!(p::CPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
 
-struct BudgetUpdateWrapper
+struct BudgetUpdateWrapper <: Updater
     belief_updater::Updater
     planner::CPOMCPPlanner
 end
@@ -212,7 +213,7 @@ function update(up::BudgetUpdateWrapper, b, a, o)
     if up.planner._tree != nothing
         up.planner.budget = (up.planner.budget - up.planner._cost_mem)/discount(up.planner.problem)
     end
-    return update(up.belief_updater, a, o)
+    return update(up.belief_updater, b, a, o)
 end
 
 function updater(p::CPOMCPPlanner)

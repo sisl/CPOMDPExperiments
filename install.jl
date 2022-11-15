@@ -46,7 +46,7 @@ Pkg.develop(packages)
 Pkg.add("D3Trees")
 #Pkg.add("BSON")
 Pkg.add("Distributions")
-#Pkg.add("Infiltrator")
+Pkg.add("Infiltrator")
 
 # POMDP things. 
 Pkg.add("POMDPs")

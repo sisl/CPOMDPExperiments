@@ -231,7 +231,7 @@ function Base.iterate(it::POMDPTools.Simulators.MDPSimIterator{SPEC,M}, is::Tupl
     a, ai = action_info(it.policy, s)
     out = @gen(:sp,:r,:c,:info)(it.mdp, s, a, it.rng)
     nt = merge(NamedTuple{(:sp,:r,:c,:info)}(out), (t=t, s=s, a=a, action_info=ai))
-    return (out_tuple(it, nt), (t+1, nt.sp))
+    return (POMDPTools.Simulators.out_tuple(it, nt), (t+1, nt.sp))
 end
 
 function Base.iterate(it::POMDPTools.Simulators.POMDPSimIterator{SPEC,M}, is::Tuple{Int,S,B} = (1, it.init_state, it.init_belief)) where {SPEC, M<:CPOMDP, S,B}
@@ -246,5 +246,5 @@ function Base.iterate(it::POMDPTools.Simulators.POMDPSimIterator{SPEC,M}, is::Tu
     outnt = NamedTuple{(:sp,:o,:r,:c,:info)}(out)
     bp, ui = update_info(it.updater, b, a, outnt.o)
     nt = merge(outnt, (t=t, b=b, s=s, a=a, action_info=ai, bp=bp, update_info=ui))
-    return (out_tuple(it, nt), (t+1, nt.sp, nt.bp))
+    return (POMDPTools.Simulators.out_tuple(it, nt), (t+1, nt.sp, nt.bp))
 end

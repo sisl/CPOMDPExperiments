@@ -53,7 +53,7 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
 
         # dual ascent w/ clipping
         ha = rand(p.rng, action_policy_UCB(CPOMCPObsNode(t,1), p._lambda, 0.0, 0.0))
-        p._lambda += alpha(p.solver.alpha, i) .* (t.cv[ha] - p.budget)
+        p._lambda += alpha(p.solver.alpha_schedule, i) .* (t.cv[ha] - p.budget)
         p._lambda = min.(max.(p._lambda, 0.), max_clip)
 
     end
@@ -123,7 +123,7 @@ end
 
 function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     if steps == 0 || isterminal(p.problem, s)
-        return 0.0
+        return 0.0, zeros(Float64, hnode.tree.n_costs)
     end
 
     t = hnode.tree
@@ -132,7 +132,7 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     p._best_node_mem = acts.vals
     ha = rand(p.rng, acts)
     a = t.a_labels[ha]
-    @infiltrate
+
     sp, o, r, c = @gen(:sp, :o, :r, :c)(p.problem, s, a, p.rng)
     
     hao = get(t.o_lookup, (ha, o), 0)

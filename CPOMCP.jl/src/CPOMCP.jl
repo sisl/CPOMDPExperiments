@@ -22,7 +22,7 @@ using Printf
 using POMDPLinter
 using POMDPTools
 
-import POMDPs: action, solve, updater
+import POMDPs: action, solve, updater, simulate, update
 import POMDPLinter: @POMDP_require, @show_requirements
 
 using MCTS
@@ -37,6 +37,7 @@ export
     CPOMCPSolver,
     CPOMCPPlanner,
     updater,
+    update,
     solve,
 
     # solver
@@ -189,7 +190,7 @@ mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
     budget::Vector{Float64}     # remaining budget for constraint search
     _best_node_mem::Vector{Int}
     _tree::Union{Nothing, Any}
-    _cost_mem::Float64          # estimate for one-step cost
+    _cost_mem::Union{Nothing,Vector{Float64}}   # estimate for one-step cost
     _lambda::Union{Nothing,Vector{Float64}}    # weights for dual ascent
     _tau::Vector{Float64}       # clips for dual ascent
 end
@@ -197,7 +198,7 @@ end
 function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
     se = convert_estimator(solver.estimate_value, solver, pomdp) # FIXME??
     return CPOMCPPlanner(solver, pomdp, se, solver.rng, 
-        costs_limit(pomdp), Int[], nothing, 0., nothing, costs_limit(pomdp))
+        costs_limit(pomdp), Int[], nothing, nothing, nothing, costs_limit(pomdp))
 end
 
 solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)

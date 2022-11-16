@@ -34,7 +34,7 @@ include("gen.jl")
 # ModelTools
 # including ConstrainedRolloutSimulator, its simulate functions, and UnderlyingCMDP
 export 
-    ConstrainedRolloutSimulators,
+    ConstrainedRolloutSimulator,
     simulate,
     UnderlyingCMDP,
     stepthrough

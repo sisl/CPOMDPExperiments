@@ -38,8 +38,11 @@ export
     simulate,
     UnderlyingCMDP,
     stepthrough,
-    GenerativeBeliefCMDP
+    GenerativeBeliefCMDP,
+    ConstrainMDPWrapper,
+    ConstrainPOMDPWrapper
 include("CPOMDPTools/simulators.jl")
 include("CPOMDPTools/undercmdp.jl")
 include("CPOMDPTools/gbcmdp.jl")
+include("CPOMDPTools/constrain_wrapper.jl")
 end # module

@@ -1,16 +1,44 @@
 module CMCTS
 
 using POMDPs
+import POMDPs: action, update
 using POMDPTools
+using CPOMDPs
+using MCTS
+import MCTS: tooltip_tag, node_tag, estimate_value 
+
 using Random
 using Printf
 using ProgressMeter
 using POMDPLinter: @show_requirements, requirements_info, @POMDP_require, @req, @subreq
 import POMDPLinter
 
+#export
+#    StateNode
+
+#export
+#    AbstractStateNode,
+#    StateActionStateNode,
+#    DPWStateActionNode,
+#    DPWStateNode,
+
+abstract type AbstractCMCTSPlanner{P<:Union{CMDP,CPOMDP}} <: Policy end
+abstract type AbstractCMCTSSolver <: Solver end
+
+#include("requirements_info.jl") # TODO
+
+export 
+    estimate_value
+include("rollout.jl")
+
+# export 
+#    CMCTSSolver,
+#    CMCTSPlanner
+# include("vanilla_types.jl")
+# include("vanilla_solver.jl")
+
+
 export
-    CMCTSSolver,
-    CMCTSPlanner,
     CDPWSolver,
     CDPWPlanner,
     BeliefCMCTSSolver,
@@ -19,44 +47,21 @@ export
     solve,
     action,
     action_info,
-    rollout,
-    StateNode,
-    RandomActionGenerator,
-    RolloutEstimator,
-    next_action,
     clear_tree!,
-    estimate_value,
-    init_N,
-    init_Q,
-    children,
-    n_children,
-    isroot,
-    default_action,
-    get_state_node
 
-#export
-#    AbstractStateNode,
-#    StateActionStateNode,
-#    DPWStateActionNode,
-#    DPWStateNode,
+include("cdpw_types.jl")
+include("cdpw_solver.jl")
 
-#    ExceptionRethrow,
-#    ReportWhenUsed
+export
+    BeliefCMCTSSolver,
+    CMCTSBudgetUpdateWrapper,
+    updater,
+    update
+include("belief_cmcts.jl")
 
-abstract type AbstractCMCTSPlanner{P<:Union{MDP,POMDP}} <: Policy end
-abstract type AbstractCMCTSSolver <: Solver end
-abstract type AbstractStateNode end
-
-include("requirements_info.jl")
-include("domain_knowledge.jl")
-include("vanilla.jl")
-include("dpw_types.jl")
-include("dpw.jl")
-include("action_gen.jl")
-include("util.jl")
-include("default_action.jl")
-include("belief_mcts.jl")
-
+export
+    tooltip_tag,
+    node_tag
 include("visualization.jl")
 
 end # module

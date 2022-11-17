@@ -39,6 +39,7 @@ export
     updater,
     update,
     solve,
+    POMCPBudgetUpdateWrapper,
 
     # solver
     action,
@@ -205,16 +206,16 @@ solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
 Random.seed!(p::CPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
 
-struct BudgetUpdateWrapper <: Updater
-    belief_updater::Updater
+struct CPOMCPBudgetUpdateWrapper <: Updater
+    updater::Updater
     planner::CPOMCPPlanner
 end
 
-function update(up::BudgetUpdateWrapper, b, a, o)
+function update(up::CPOMCPBudgetUpdateWrapper, b, a, o)
     if up.planner._tree != nothing
         up.planner.budget = (up.planner.budget - up.planner._cost_mem)/discount(up.planner.problem)
     end
-    return update(up.belief_updater, b, a, o)
+    return update(up.updater, b, a, o)
 end
 
 function updater(p::CPOMCPPlanner)
@@ -223,7 +224,7 @@ function updater(p::CPOMCPPlanner)
     A = actiontype(P)
     O = obstype(P)
     # p.budget = (p.budget - c)/discount(p.problem)
-    return BudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
+    return CPOMCPBudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
         p)
     # XXX It would be better to automatically use an SIRParticleFilter if possible
     # if !@implemented ParticleFilters.obs_weight(::P, ::S, ::A, ::S, ::O)

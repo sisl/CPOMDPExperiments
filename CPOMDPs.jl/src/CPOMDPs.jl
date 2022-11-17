@@ -37,7 +37,9 @@ export
     ConstrainedRolloutSimulator,
     simulate,
     UnderlyingCMDP,
-    stepthrough
-include("rollout.jl")
-
+    stepthrough,
+    GenerativeBeliefCMDP
+include("CPOMDPTools/simulators.jl")
+include("CPOMDPTools/undercmdp.jl")
+include("CPOMDPTools/gbcmdp.jl")
 end # module

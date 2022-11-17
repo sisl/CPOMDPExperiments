@@ -102,9 +102,11 @@ function action_policy_UCB(hnode::CPOMCPObsNode, lambda::Vector{Float64}, c::Flo
     end
     
     # get next best nodes
-    val_diff = criterion_values .- best_criterion_val
-    next_best_nodes = t.children[h][0 .< val_diff .< nu]
-    append!(best_nodes, next_best_nodes)
+    if nu > 0.
+        val_diff = best_criterion_val .- criterion_values 
+        next_best_nodes = t.children[h][0 .< val_diff .< nu]
+        append!(best_nodes, next_best_nodes)
+    end
     
     # weigh actions
     if length(best_nodes) == 1

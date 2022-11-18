@@ -63,7 +63,7 @@ Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/RockSample.jl"))
 Pkg.add(PackageSpec(url="https://github.com/jamgochiana/VDPTag2.jl"))
 Pkg.add(PackageSpec(url="https://github.com/sisl/RoombaPOMDPs.git"))
 
-#Pkg.add("Parameters")
+Pkg.add("Parameters")
 Pkg.add("ProgressMeter")
 #
 #Pkg.add("OrderedCollections")

@@ -45,11 +45,10 @@ function update(up::CMCTSBudgetUpdateWrapper, b, a, o)
     return update(up.updater, b, a, o)
 end
 
+initialize_belief(bu::CMCTSBudgetUpdateWrapper, dist) = initialize_belief(bu.updater, dist)
+
 function updater(p::AbstractCMCTSPlanner)
     P = typeof(p.mdp)
-    S = statetype(P)
-    A = actiontype(P)
-    O = obstype(P)
     @assert P <: GenerativeBeliefCMDP "updater called on a AbstractCMCTSPlanner without an underlying BeliefMDP"
     return CMCTSBudgetUpdateWrapper(p.mdp.updater, p)
     # XXX It would be better to automatically use an SIRParticleFilter if possible

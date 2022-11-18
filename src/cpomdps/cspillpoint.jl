@@ -1,5 +1,5 @@
-@with_kw struct SpillpointCPOMDP <: ConstrainPOMDPWrapper
-    pomdp::SpillpointPOMDP = SpillpointPOMDP(exited_reward_amount=0.,exited_reward_binary=0.)
+@with_kw struct SpillpointCPOMDP{P<:SpillpointPOMDP,S,A,O} <: ConstrainPOMDPWrapper{P,S,A,O}
+    pomdp::P = SpillpointPOMDP(exited_reward_amount=0.,exited_reward_binary=0.)
     steps_exited_budget::Float64 = 1. # discounted number of steps with allowed exit (aka exit probability)
     total_exited_budget::Float64 = .5 # discounted total volume of exited gas allowed
 end 

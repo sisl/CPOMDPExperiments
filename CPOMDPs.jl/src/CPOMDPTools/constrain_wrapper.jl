@@ -1,4 +1,4 @@
-abstract type ConstrainMDPWrapper <: CMDP end
+abstract type ConstrainMDPWrapper{M,S,A} <: CMDP{S,A} where {M<:MDP} end
 POMDPs.discount(m::ConstrainMDPWrapper) = POMDPs.discount(m.mdp)
 POMDPs.transition(m::ConstrainMDPWrapper, s, a) = POMDPs.transition(m.mdp, s, a)
 POMDPs.reward(m::ConstrainMDPWrapper, s, a) = POMDPs.reward(m.mdp, s, a) 
@@ -21,7 +21,7 @@ function POMDPs.gen(m::ConstrainMDPWrapper, s, a, rng::AbstractRNG)
     return merge(nt, (c=costs(m,s,a,nt[:sp])))
 end
 
-abstract type ConstrainPOMDPWrapper <: CPOMDP end
+abstract type ConstrainPOMDPWrapper{P,S,A,O} <: CPOMDP{S,A,O} where {P<:POMDP} end
 POMDPs.discount(m::ConstrainPOMDPWrapper) = POMDPs.discount(m.pomdp)
 POMDPs.transition(m::ConstrainPOMDPWrapper, state, action) = POMDPs.transition(m.pomdp, state, action)
 POMDPs.observation(m::ConstrainPOMDPWrapper, statep) = POMDPs.observation(m.pomdp, statep)
@@ -43,7 +43,6 @@ POMDPs.convert_o(a, b, problem::ConstrainPOMDPWrapper) = POMDPs.convert_o(a, b, 
 POMDPs.states(problem::ConstrainPOMDPWrapper) = POMDPs.states(problem.pomdp)
 POMDPs.actions(m::ConstrainPOMDPWrapper) = POMDPs.actions(m.pomdp)
 POMDPs.actions(m::ConstrainPOMDPWrapper, s) = POMDPs.actions(m.pomdp, s)
-POMDPs.actions(m::ConstrainPOMDPWrapper, b) = POMDPs.actions(m.pomdp, b)
 POMDPs.observations(problem::ConstrainPOMDPWrapper) = POMDPs.observations(problem.pomdp)
 POMDPs.observations(problem::ConstrainPOMDPWrapper, s) = POMDPs.observations(problem.pomdp, s) 
 POMDPs.statetype(p::ConstrainPOMDPWrapper) = POMDPs.statetype(p.pomdp)
@@ -51,5 +50,8 @@ POMDPs.actiontype(p::ConstrainPOMDPWrapper) = POMDPs.actiontype(p.pomdp)
 POMDPs.obstype(p::ConstrainPOMDPWrapper) = POMDPs.obstype(p.pomdp)
 function POMDPs.gen(m::ConstrainPOMDPWrapper, s, a, rng::AbstractRNG)
     nt = POMDPs.gen(m.pomdp, s, a, rng)
-    return merge(nt, (c=costs(m,s,a,nt[:sp], nt[:o])))
+    if :sp in keys(nt)
+        return merge(nt, (c=costs(m,s,a,nt[:sp], nt[:o])))
+    end
+    return nt
 end

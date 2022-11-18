@@ -9,29 +9,33 @@ using POMDPGifs
 using Cairo
 using ParticleFilters
 
-# non-constrained baseline
 using POMDPs
+using POMDPTools
+using CPOMDPs
+import CPOMDPs: costs, costs_limit, n_costs, min_reward, max_reward
+
+# non-constrained baseline
 using BasicPOMCP
 using MCTS # belief-mcts for belief dpw
 #using POMCPOW
 
 # constrained solvers
-using CPOMDPs
 using CMCTS
 using CPOMCP
 #using CPOMCPOW
 
-# unconstrained models 
+# models 
 using POMDPModels
+include("cpomdps/clightdark.jl")
 using RockSample
+using CRockSample
 using VDPTag2
+include("cpomdps/cvdp.jl")
+#using StillpointPOMDP
+#include("cpomdps/cspillpoint.jl")
 #using RoombaPOMDPs
 
 # constrained models 
-using CRockSample
-include("cpomdps/clightdark.jl")
-include("cpomdps/cvdp.jl")
-include("cpomdps/cspillpoint.jl")
 
 # testing configurations
 export

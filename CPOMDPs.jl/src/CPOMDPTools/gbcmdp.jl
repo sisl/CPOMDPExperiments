@@ -10,7 +10,7 @@ end
 function GenerativeBeliefCMDP(cpomdp::P, up::U) where {P<:CPOMDP, U<:Updater}
     # XXX hack to determine belief type
     b0 = initialize_belief(up, initialstate(cpomdp))
-    GenerativeBeliefCMDP{P, U, typeof(b0), actiontype(pomdp)}(cpomdp, up)
+    GenerativeBeliefCMDP{P, U, typeof(b0), actiontype(cpomdp)}(cpomdp, up)
 end
 
 function POMDPs.gen(bmdp::GenerativeBeliefCMDP, b, a, rng::AbstractRNG)

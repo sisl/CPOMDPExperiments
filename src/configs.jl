@@ -7,6 +7,15 @@ SOLVERS = ["pomcp", "pft", "pomcpow"]
 # rewards: +10 for leaving east, -100 for any other direction (made impossible), +10 for sampling valuable rock, -10 for worthless rock, -100 for no rock
 # costs: 1 for any sampling, 1 for any negative reward. Total cost constraint is 1 (cannot ever sample worthless rock)
 
+
+
+EXPERIMENTS = [("rocksample","pomcp"),
+    ("lightdark1d","pft-ow"),
+    ("lightdark1d","pomcpow"),
+    ("vdptag","pft-dpw"),
+    ("spillpoint","pft-dpw"),
+    ]
+
 models = Dict(
     "rocksample" => (
     #RockSamplePOMDP(rocks_positions=[(2,3), (4,4), (4,2)], 
@@ -20,18 +29,22 @@ models = Dict(
     RockSamplePOMDP(5,5),
     RockSampleCPOMDP(5,5),
     ),
-    "vdptag" => (
-    VDPTagPOMDP(),
-    VDPTagPOMDP(),
-    ),
     "lightdark1d" => (
     LightDark1D(),
-    LightDark1D(),
+    CLightDark1D(),
     ),
-    "roomba" => (
-    RoombaPOMDP(),
-    RoombaPOMDP(),
+    "vdptag" => (
+    VDPTagPOMDP(),
+    CVDPTagPOMDP(),
     ),
+    #"spillpoint" => (
+    #SpillpointPOMDP(),
+    #SpillpointCPOMDP(),
+    #),
+    #"roomba" => (
+    #RoombaPOMDP(),
+    #RoombaPOMDP(),
+    #),
 )
 
 # solvers: solver: (pomdp, cpomdp)
@@ -40,12 +53,16 @@ solvers = Dict(
         ::POMDP -> POMCPSolver(tree_queries=10000, c=2), 
         ::CPOMDP -> CPOMCPSolver(tree_queries=10000, c=2)
     ), 
-    "pft" => ( #PFT-DPW
+    "pft-dpw" => ( #PFT-DPW
         p::POMDP -> BeliefMCTSSolver(DPWSolver(), SIRParticleFilter(p, 1000)),
         cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(), SIRParticleFilter(cp, 1000))
     ), 
+    "pft-ow" => ( #PFT-OW
+        p::POMDP -> BeliefMCTSSolver(DPWSolver(enable_action_pw=false), SIRParticleFilter(p, 1000)),
+        cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(enable_action_pw=false), SIRParticleFilter(cp, 1000))
+    ), 
     "pomcpow" => ( # POMCPOW
         ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0)), 
-        ::POMDP -> CPOMCPOWSolver(criterion=MaxUCB(20.0))
+        ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0))
     ), 
 )

@@ -208,7 +208,7 @@ mutable struct CDPWTree{S,A}
     n::Vector{Int}
     q::Vector{Float64}
     qc::Vector{Vector{Float64}}
-    transitions::Vector{Vector{Tuple{Int,Float64}}}
+    transitions::Vector{Vector{Tuple{Int,Float64,Vector{Float64}}}}
     a_labels::Vector{A}
     a_lookup::Dict{Tuple{Int,A}, Int}
 
@@ -224,13 +224,13 @@ mutable struct CDPWTree{S,A}
         sz = min(sz, 100_000)
         return new(sizehint!(Int[], sz),
                    sizehint!(Vector{Int}[], sz),
-                   sizehint!(Vector{Vector{Float64}}[], sz), #qc
                    sizehint!(S[], sz),
                    Dict{S, Int}(),
                    
                    sizehint!(Int[], sz),
                    sizehint!(Float64[], sz),
-                   sizehint!(Vector{Tuple{Int,Float64}}[], sz),
+                   sizehint!(Vector{Vector{Float64}}[], sz), #qc
+                   sizehint!(Vector{Tuple{Int,Float64,Vector{Float64}}}[], sz),
                    sizehint!(A[], sz),
                    Dict{Tuple{Int,A}, Int}(),
 
@@ -259,7 +259,7 @@ function insert_action_node!(tree::CDPWTree{S,A}, snode::Int, a::A, n0::Int, q0:
     push!(tree.q, q0)
     push!(tree.qc, qc0)
     push!(tree.a_labels, a)
-    push!(tree.transitions, Vector{Tuple{Int,Float64}}[])
+    push!(tree.transitions, Vector{Tuple{Int,Float64,Vector{Float64}}}[])
     sanode = length(tree.n)
     push!(tree.children[snode], sanode)
     push!(tree.n_a_children, 0)

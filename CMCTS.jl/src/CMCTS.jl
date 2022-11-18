@@ -1,17 +1,20 @@
 module CMCTS
-
+using Infiltrator
 using POMDPs
-import POMDPs: action, update
+import POMDPs: action, update, updater, initialize_belief
 using POMDPTools
 using CPOMDPs
 using MCTS
-import MCTS: tooltip_tag, node_tag, estimate_value 
+import MCTS: tooltip_tag, node_tag, estimate_value, convert_estimator
 
 using Random
 using Printf
 using ProgressMeter
 using POMDPLinter: @show_requirements, requirements_info, @POMDP_require, @req, @subreq
 import POMDPLinter
+
+using D3Trees
+using Colors
 
 #export
 #    StateNode
@@ -47,7 +50,7 @@ export
     solve,
     action,
     action_info,
-    clear_tree!,
+    clear_tree!
 
 include("cdpw_types.jl")
 include("cdpw_solver.jl")
@@ -56,7 +59,8 @@ export
     BeliefCMCTSSolver,
     CMCTSBudgetUpdateWrapper,
     updater,
-    update
+    update,
+    initialize_belief
 include("belief_cmcts.jl")
 
 export

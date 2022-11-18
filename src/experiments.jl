@@ -1,3 +1,14 @@
+function POMDPs.updater(p::AbstractMCTSPlanner)
+    P = typeof(p.mdp)
+    @assert P <: GenerativeBeliefMDP "updater called on a AbstractCMCTSPlanner without an underlying BeliefMDP"
+    return p.mdp.updater
+    # XXX It would be better to automatically use an SIRParticleFilter if possible
+    # if !@implemented ParticleFilters.obs_weight(::P, ::S, ::A, ::S, ::O)
+    #     return UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
+    # end
+    # return SIRParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
+end
+
 function test(model::String, solver::String)
     
     println("Testing POMDP $(model) with solver $(solver)")
@@ -52,9 +63,7 @@ function problem_test(p::Union{POMDP,CPOMDP}, solver_func::Function, name::Strin
 end
 
 function run_all_tests()
-    for m in MODELS
-        for s in SOLVERS
-            test(m,s)
-        end
+    for (m,s) in EXPERIMENTS
+        test(m,s)
     end
 end

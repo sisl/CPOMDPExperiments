@@ -53,7 +53,8 @@ function POMDPTools.action_info(p::CDPWPlanner, s; tree_in_info=false)
 
         # take random action from resulting best policy and adjust one-step cost memory
         a = tree.a_labels[rand(p.rng,policy)]
-        p._cost_mem = dot(tree.top_level_costs[policy.vals], policy.probs)
+        tlc = map(i->tree.top_level_costs[i], policy.vals)
+        p._cost_mem = dot(tlc, policy.probs)
     catch ex
         a = convert(actiontype(p.mdp), default_action(p.solver.default_action, p.mdp, s, ex))
         info[:exception] = ex
@@ -110,7 +111,7 @@ function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
     # action progressive widening
     if dpw.solver.enable_action_pw
         if length(tree.children[snode]) <= sol.k_action*tree.total_n[snode]^sol.alpha_action # criterion for new action generation
-            a = next_action(dpw.next_action, dpw.mdp, s, DPWStateNode(tree, snode)) # action generation step
+            a = next_action(dpw.next_action, dpw.mdp, s, CDPWStateNode(tree, snode)) # action generation step
             if !sol.check_repeat_action || !haskey(tree.a_lookup, (snode, a))
                 n0 = init_N(sol.init_N, dpw.mdp, s, a)
                 q0 = init_Q(sol.init_Q, dpw.mdp, s, a)
@@ -131,8 +132,8 @@ function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
             tree.total_n[snode] += n0
         end
     end
-    acts = action_policy_UCB(tree, snode, p._lambda, sol.exploration_constant, sol.nu)
-    sanode = rand(p.rng, acts)
+    acts = action_policy_UCB(tree, snode, dpw._lambda, sol.exploration_constant, sol.nu)
+    sanode = rand(dpw.rng, acts)
     a = tree.a_labels[sanode]
 
     # state progressive widening
@@ -146,7 +147,7 @@ function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
             spnode = insert_state_node!(tree, sp, sol.keep_tree || sol.check_repeat_state)
             new_node = true
         end
-
+        
         push!(tree.transitions[sanode], (spnode, r, c))
 
         if !sol.check_repeat_state
@@ -173,8 +174,7 @@ function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
     tree.qc[sanode] += (qc - tree.qc[sanode])/tree.n[sanode]
 
     # top level cost estimator
-    if d == 0
-        
+    if d == sol.depth
         if !(sanode in keys(tree.top_level_costs))
             tree.top_level_costs[sanode] = c
         else

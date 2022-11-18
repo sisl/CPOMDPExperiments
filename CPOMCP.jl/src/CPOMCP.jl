@@ -22,7 +22,7 @@ using Printf
 using POMDPLinter
 using POMDPTools
 
-import POMDPs: action, solve, updater, simulate, update
+import POMDPs: action, solve, updater, simulate, update, initialize_belief
 import POMDPLinter: @POMDP_require, @show_requirements
 
 using MCTS
@@ -38,6 +38,7 @@ export
     CPOMCPPlanner,
     updater,
     update,
+    initialize_belief,
     solve,
     POMCPBudgetUpdateWrapper,
 
@@ -220,9 +221,6 @@ end
 
 function updater(p::CPOMCPPlanner)
     P = typeof(p.problem)
-    S = statetype(P)
-    A = actiontype(P)
-    O = obstype(P)
     # p.budget = (p.budget - c)/discount(p.problem)
     return CPOMCPBudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
         p)
@@ -232,6 +230,9 @@ function updater(p::CPOMCPPlanner)
     # end
     # return SIRParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
 end
+
+initialize_belief(bu::CPOMCPBudgetUpdateWrapper, dist) = initialize_belief(bu.updater, dist)
+
 
 include("solver.jl")
 include("rollout.jl")

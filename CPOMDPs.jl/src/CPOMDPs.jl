@@ -1,6 +1,6 @@
 module CPOMDPs
-#using Reexport
-#@reexport using POMDPs
+
+using Infiltrator
 using POMDPs
 using Random
 import POMDPLinter

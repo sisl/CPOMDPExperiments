@@ -26,10 +26,10 @@ struct ConstrainedRolloutSimulator{RNG<:AbstractRNG} <: Simulator
 end
 
 ConstrainedRolloutSimulator(rng::AbstractRNG, d::Int=typemax(Int)) = ConstrainedRolloutSimulator(rng, d, nothing)
-function RolloutSimulator(;rng=Random.GLOBAL_RNG,
+function ConstrainedRolloutSimulator(;rng=Random.GLOBAL_RNG,
                            eps=nothing,
                            max_steps=nothing)
-    return RolloutSimulator{typeof(rng)}(rng, max_steps, eps)
+    return ConstrainedRolloutSimulator{typeof(rng)}(rng, max_steps, eps)
 end
 
 

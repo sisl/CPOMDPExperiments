@@ -17,21 +17,24 @@ import CPOMDPs: costs, costs_limit, n_costs, min_reward, max_reward
 # non-constrained baseline
 using BasicPOMCP
 using MCTS # belief-mcts for belief dpw
-using POMCPOW
+#using POMCPOW
 
 # constrained solvers
 using CMCTS
 using CPOMCP
-using CPOMCPOW
+#using CPOMCPOW
 
 # models 
 using POMDPModels
 include("cpomdps/clightdark.jl")
+
 using RockSample
 include("cpomdps/crocksample.jl")
 #using CRockSample
+
 using VDPTag2
 include("cpomdps/cvdp.jl")
+
 #using StillpointPOMDP
 #include("cpomdps/cspillpoint.jl")
 #using RoombaPOMDPs

@@ -48,7 +48,7 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
     all_terminal = true
     # gc_enable(false)
     i = 0
-    max_clip = (max_reward(pomcp.problem) - min_reward(pomcp.problem))/discount(pomcp.problem) ./ pomcp._tau
+    max_clip = (max_reward(pomcp.problem) - min_reward(pomcp.problem))/(1-discount(pomcp.problem)) ./ pomcp._tau
     p._lambda = rand(p.rng, tree.n_costs) .* max_clip # random initialization
     t0 = timer()
 

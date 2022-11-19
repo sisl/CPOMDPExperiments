@@ -25,7 +25,7 @@ function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     all_terminal = true
     nquery = 0
     start_us = CPUtime_us()
-    max_clip = (max_reward(p.problem) - min_reward(p.problem))/discount(p.problem) ./ p._tau
+    max_clip = (max_reward(p.problem) - min_reward(p.problem))/(1-discount(p.problem)) ./ p._tau
     p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
 
     for i in 1:p.solver.tree_queries

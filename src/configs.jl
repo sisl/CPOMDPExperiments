@@ -13,7 +13,7 @@ EXPERIMENTS = [("rocksample","pomcp"),
     ("lightdark1d","pft-ow"),
     ("lightdark1d","pomcpow"),
     ("vdptag","pft-dpw"),
-    ("spillpoint","pft-dpw"),
+    #("spillpoint","pft-dpw"),
     ]
 
 models = Dict(
@@ -27,7 +27,7 @@ models = Dict(
     #    discount_factor=0.95, 
     #    good_rock_reward = 20.0),
     RockSamplePOMDP(5,5),
-    RockSampleCPOMDP(5,5),
+    RockSampleCPOMDP(pomdp=RockSamplePOMDP(5,5)),
     ),
     "lightdark1d" => (
     LightDark1D(),

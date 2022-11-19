@@ -68,7 +68,7 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
     p.solver.show_progress ? progress = Progress(p.solver.n_iterations) : nothing
     nquery = 0
     start_s = timer()
-    max_clip = (max_reward(p.mdp) - min_reward(p.mdp))/discount(p.mdp) ./ p._tau
+    max_clip = (max_reward(p.mdp) - min_reward(p.mdp))/(1-discount(p.mdp)) ./ p._tau
     p._lambda = rand(p.rng, n_costs(p.mdp)) .* max_clip # random initialization
     for i = 1:p.solver.n_iterations
         nquery += 1

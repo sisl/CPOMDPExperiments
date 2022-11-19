@@ -13,7 +13,7 @@ using Random
 using Printf
 using POMDPPolicies
 
-# using BasicPOMCP: convert_estimator
+using BasicPOMCP: convert_estimator
 import Base: insert!
 import POMDPs: action, solve, mean, rand, updater, update, initialize_belief, currentobs, history
 import POMDPModelTools: action_info

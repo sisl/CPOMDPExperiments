@@ -48,7 +48,10 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
     all_terminal = true
     # gc_enable(false)
     i = 0
+    max_clip = (max_reward(pomcp.problem) - min_reward(pomcp.problem))/discount(pomcp.problem) ./ pomcp._tau
+    p._lambda = rand(p.rng, tree.n_costs) .* max_clip # random initialization
     t0 = timer()
+
     while i < pomcp.solver.tree_queries
         i += 1
         s = rand(pomcp.solver.rng, tree.root_belief)
@@ -57,6 +60,12 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
             simulate(pomcp, CPOWTreeObsNode(tree, 1), s, max_depth)
             all_terminal = false
         end
+
+        # dual ascent with clipping
+        ha = rand(pomcp.rng, select_best(MaxCUCB(0.,0.),CPOWTreeObsNode(tree,1),pomcp._lambda))
+        p._lambda += alpha(pomcp.solver.alpha_schedule,i) .*  (tree.cv[ha] - pomcp.budget)
+        p._lambda = min.(max.(p._lambda, 0.), max_clip)
+
         if timer() - t0 >= pomcp.solver.max_time
             break
         end
@@ -81,7 +90,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
     sol = pomcp.solver
 
     if POMDPs.isterminal(pomcp.problem, s) || d <= 0
-        return 0.0
+        return 0.0, zeros(Float64, tree.n_costs)
     end
 
     if sol.enable_action_pw
@@ -119,7 +128,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
     end
     total_n = tree.total_n[h]
 
-    best_node = select_best(pomcp.criterion, h_node, pomcp.solver.rng)
+    best_node = rand(sol.rng, select_best(pomcp.criterion, h_node, pomcp._lambda))
     a = tree.a_labels[best_node]
 
     new_node = false
@@ -156,101 +165,92 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
     end
 
     if new_node
-        R = r + POMDPs.discount(pomcp.problem)*estimate_value(pomcp.solved_estimate, pomcp.problem, sp, POWTreeObsNode(tree, hao), d-1)
+        v, cv = estimate_value(pomcp.solved_estimate, pomcp.problem, sp, CPOWTreeObsNode(tree, hao), d-1)
     else
         pair = rand(sol.rng, tree.generated[best_node])
         o = pair.first
         hao = pair.second
-        push_weighted!(tree.sr_beliefs[hao], pomcp.node_sr_belief_updater, s, sp, r)
-        sp, r = rand(sol.rng, tree.sr_beliefs[hao])
+        push_weighted!(tree.sr_beliefs[hao], pomcp.node_sr_belief_updater, s, sp, r, c)
+        sp, r, c = rand(sol.rng, tree.sr_beliefs[hao])
 
-        R = r + POMDPs.discount(pomcp.problem)*simulate(pomcp, POWTreeObsNode(tree, hao), sp, d-1)
+        v, cv = simulate(pomcp, CPOWTreeObsNode(tree, hao), sp, d-1)
     end
+    R = r + POMDPs.discount(pomcp.problem)*v
+    C = r + POMDPs.discount(pomcp.problem)*cv
 
     tree.n[best_node] += 1
     tree.total_n[h] += 1
     if tree.v[best_node] != -Inf
         tree.v[best_node] += (R-tree.v[best_node])/tree.n[best_node]
     end
+    if tree.cv[best_node] != -Inf
+        tree.cv[best_node] += (C-tree.cv[best_node])/tree.n[best_node]
+    end
 
-    return R
+    # top level costs update
+    if steps == pomcp.solver.max_depth
+        if !(best_node in keys(tree.top_level_costs))
+            tree.top_level_costs[best_node] = c 
+        else
+            tree.top_level_costs[best_node] += (c-tree.top_level_costs[best_node])/tree.n[best_node]
+        end
+    end
+    return R, C
 end
 
 function solve(solver::CPOMCPOWSolver, problem::POMDP)
     return CPOMCPOWPlanner(solver, problem)
 end
 
-struct MaxUCB
+struct MaxCUCB
     c::Float64
+    nu::Float64
 end
 
-function select_best(crit::MaxUCB, h_node::POWTreeObsNode, rng)
+function select_best(crit::MaxCUCB, h_node::CPOWTreeObsNode, lambda::Vector{Float})
     tree = h_node.tree
     h = h_node.node
-    best_criterion_val = -Inf
-    local best_node::Int
-    istied = false
-    local tied::Vector{Int}
     ltn = log(tree.total_n[h])
+    best_nodes = Int[]
+    criterion_values = sizehint!(Float64[],length(tree.tried[h]))
+    best_criterion_val = -Inf
     for node in tree.tried[h]
         n = tree.n[node]
         if isinf(tree.v[node])
-            criterion_value = tree.v[node]
+            criterion_value = tree.v[node] 
         elseif n == 0
             criterion_value = Inf
         else
-            criterion_value = tree.v[node] + crit.c*sqrt(ltn/n)
+            criterion_value = tree.v[node] + crit.c*sqrt(ltn/n) - dot(lambda,tree.cv[node])
         end
+        push!(criterion_values, criterion_value)
         if criterion_value > best_criterion_val
             best_criterion_val = criterion_value
-            best_node = node
-            istied = false
+            empty!(best_nodes)
+            push!(best_nodes, node)
         elseif criterion_value == best_criterion_val
-            if istied
-                push!(tied, node)
-            else
-                istied = true
-                tied = [best_node, node]
-            end
+            push!(best_nodes, node)
         end
     end
-    if istied
-        return rand(rng, tied)
+
+    # get next best nodes
+    if crit.nu > eps(Float32)
+        val_diff = best_criterion_val .- criterion_values
+        next_best_nodes = tree.tried[h][0 .< val_diff .< crit.nu]
+        append!(best_nodes, next_best_nodes)
+    end
+
+    # weigh actions
+    if length(best_nodes) == 1
+        weights = [1.0]
     else
-        return best_node
+        weights = solve_lp(t, best_nodes)
     end
+    return SparseCat(best_nodes, weights)  
 end
 
-struct MaxQ end
-
-function select_best(crit::MaxQ, h_node::POWTreeObsNode, rng)
-    tree = h_node.tree
-    h = h_node.node
-    best_node = first(tree.tried[h])
-    best_v = tree.v[best_node]
-    @assert !isnan(best_v)
-    for node in tree.tried[h][2:end]
-        if tree.v[node] >= best_v
-            best_v = tree.v[node]
-            best_node = node
-        end
-    end
-    return best_node
-end
-
-struct MaxTries end
-
-function select_best(crit::MaxTries, h_node::POWTreeObsNode, rng)
-    tree = h_node.tree
-    h = h_node.node
-    best_node = first(tree.tried[h])
-    best_n = tree.n[best_node]
-    @assert !isnan(best_n)
-    for node in tree.tried[h][2:end]
-        if tree.n[node] >= best_n
-            best_n = tree.n[node]
-            best_node = node
-        end
-    end
-    return best_node
+function solve_lp(t::CPOMCPOWTree, best_nodes::Vector{Int})
+    # error("Multiple CPOMCP best actions not implemented")
+    # random for now
+    return ones(Float64, length(best_nodes)) / length(best_nodes)
 end

@@ -218,7 +218,7 @@ function sr_belief(h::CPOWTreeObsNode)
         return h.tree.sr_beliefs[h.node]
     end
 end
-n_children(h::POWTreeObsNode) = length(h.tree.tried[h.node])
+n_children(h::CPOWTreeObsNode) = length(h.tree.tried[h.node])
 
 ### Planner ###
 mutable struct CPOMCPOWPlanner{P,NBU,C,NA,SE,IN,IV,IC,SolverType} <: Policy
@@ -248,6 +248,7 @@ function CPOMCPOWPlanner(solver, problem::CPOMDP)
                   convert_estimator(solver.estimate_value, solver, problem),
                   solver.init_N,
                   solver.init_V,
+                  solver.init_C,
                   nothing,
                   costs_limit(problem),
                   nothing,

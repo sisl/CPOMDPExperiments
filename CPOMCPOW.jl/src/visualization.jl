@@ -55,6 +55,7 @@ function D3Trees.D3Tree(t::CPOMCPOWTree; title="CPOMCPOW Tree", kwargs...)
                       a: $(tooltip_tag(t.a_labels[ba]))
                       N: $(t.n[ba])
                       V: $(t.v[ba])
+                      CV: $(t.cv[ba])
                       $(length(t.generated[ba])) children
                       """
         link_width = max(1.0, 20.0*sqrt(t.n[ba]/t.total_n[1]))

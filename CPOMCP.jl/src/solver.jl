@@ -21,18 +21,6 @@ end
 
 action(p::CPOMCPPlanner, b) = first(action_info(p, b))
 
-struct ConstantAlphaSchedule <: AlphaSchedule 
-    scale::Float32
-end
-ConstantAlphaSchedule() = ConstantAlphaSchedule(1.e-3)
-alpha(sched::ConstantAlphaSchedule, ::Int) = sched.scale
-
-struct InverseAlphaSchedule <: AlphaSchedule 
-    scale::Float32
-end
-InverseAlphaSchedule() = InverseAlphaSchedule(1.)
-alpha(sched::InverseAlphaSchedule, query::Int) = sched.scale/query
-
 function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
     all_terminal = true
     nquery = 0

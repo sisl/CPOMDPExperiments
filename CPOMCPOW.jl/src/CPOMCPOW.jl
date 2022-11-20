@@ -1,8 +1,7 @@
 module CPOMCPOW
-
+using CPOMDPs
 using Infiltrator
 using POMDPs
-using CPOMDPs
 using BasicPOMCP
 using ParticleFilters
 using Parameters

@@ -8,10 +8,10 @@ Current constraints:
 - initial n and initial v are 0
 =#
 
+using CPOMDPs
+
 using POMDPs
 using BasicPOMCP
-
-using CPOMDPs
 using Infiltrator
 using Parameters
 using ParticleFilters

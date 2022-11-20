@@ -1,9 +1,11 @@
 module CMCTS
+
+using CPOMDPs
+
 using Infiltrator
 using POMDPs
 import POMDPs: action, update, updater, initialize_belief
 using POMDPTools
-using CPOMDPs
 using MCTS
 import MCTS: tooltip_tag, node_tag, estimate_value, convert_estimator
 

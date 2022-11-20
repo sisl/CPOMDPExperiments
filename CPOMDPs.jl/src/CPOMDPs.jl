@@ -1,13 +1,11 @@
 module CPOMDPs
 
-using Infiltrator
 using POMDPs
 using Random
 import POMDPLinter
 import POMDPs: simulate, gen, @gen
 using POMDPTools
 import POMDPTools: UnderlyingMDP, stepthrough # for ConstrainedRollout
-
 
 export 
     

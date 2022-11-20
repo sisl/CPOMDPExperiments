@@ -10,7 +10,6 @@ function action_info(pomcp::CPOMCPOWPlanner{P,NBU}, b; tree_in_info=false) where
         policy = search(pomcp, tree, info)
         info[:policy] = policy
         a = tree.a_labels[rand(pomcp.solver.rng,policy)]
-        @infiltrate
         tlcs = map(i->tree.top_level_costs[i],policy.vals)
         pomcp._cost_mem = dot(tlcs,policy.probs)
         if pomcp.solver.tree_in_info || tree_in_info

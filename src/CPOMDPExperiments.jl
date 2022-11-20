@@ -4,7 +4,6 @@ using Infiltrator
 
 using ProgressMeter
 using Parameters
-using POMDPSimulators
 using POMDPGifs
 using Cairo
 using ParticleFilters
@@ -30,13 +29,13 @@ include("cpomdps/clightdark.jl")
 
 using RockSample
 include("cpomdps/crocksample.jl")
-#using CRockSample
 
 using VDPTag2
 include("cpomdps/cvdp.jl")
 
-#using StillpointPOMDP
-#include("cpomdps/cspillpoint.jl")
+using SpillpointPOMDP
+include("cpomdps/cspillpoint.jl")
+
 #using RoombaPOMDPs
 
 # constrained models 

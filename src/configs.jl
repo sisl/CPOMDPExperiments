@@ -37,10 +37,10 @@ models = Dict(
     VDPTagPOMDP(),
     CVDPTagPOMDP(),
     ),
-    #"spillpoint" => (
-    #SpillpointPOMDP(),
-    #SpillpointCPOMDP(),
-    #),
+    "spillpoint" => (
+    SpillpointInjectionPOMDP(),
+    SpillpointInjectionCPOMDP(),
+    ),
     #"roomba" => (
     #RoombaPOMDP(),
     #RoombaPOMDP(),
@@ -54,12 +54,12 @@ solvers = Dict(
         ::CPOMDP -> CPOMCPSolver(tree_queries=10000, c=2)
     ), 
     "pft-dpw" => ( #PFT-DPW
-        p::POMDP -> BeliefMCTSSolver(DPWSolver(), SIRParticleFilter(p, 1000)),
-        cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(), SIRParticleFilter(cp, 1000))
+        p::POMDP -> BeliefMCTSSolver(DPWSolver(), ParticleFilters.SIRParticleFilter(p, 1000)),
+        cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(), ParticleFilters.SIRParticleFilter(cp, 1000))
     ), 
     "pft-ow" => ( #PFT-OW
-        p::POMDP -> BeliefMCTSSolver(DPWSolver(enable_action_pw=false), SIRParticleFilter(p, 1000)),
-        cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(enable_action_pw=false), SIRParticleFilter(cp, 1000))
+        p::POMDP -> BeliefMCTSSolver(DPWSolver(enable_action_pw=false), ParticleFilters.SIRParticleFilter(p, 1000)),
+        cp::POMDP -> BeliefCMCTSSolver(CDPWSolver(enable_action_pw=false), ParticleFilters.SIRParticleFilter(cp, 1000))
     ), 
     "pomcpow" => ( # POMCPOW
         ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0)), 

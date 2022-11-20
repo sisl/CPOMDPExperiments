@@ -16,9 +16,6 @@ packages = [
     # [deps] CPOMCPOW.jl
     PackageSpec(url=joinpath(@__DIR__, "CPOMCPOW.jl")),
 
-    # [deps] CRockSample.jl
-    PackageSpec(url=joinpath(@__DIR__, "CRockSample.jl")),
-
     # [deps] CPOMDPExperiments.jl
     # PackageSpec(url=joinpath(@__DIR__)),
 ]

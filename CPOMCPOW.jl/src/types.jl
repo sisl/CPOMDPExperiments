@@ -11,6 +11,7 @@ end
 InverseAlphaSchedule() = InverseAlphaSchedule(1.)
 alpha(sched::InverseAlphaSchedule, query::Int) = sched.scale/query
 
+const init_V = init_Q
 function init_C end
 init_C(f::Function, mdp::Union{CMDP,CPOMDP}, s, a) = f(mdp, s, a)
 init_C(n::Vector{Number}, mdp::Union{CMDP,CPOMDP}, s, a) = convert.(Float64, n)
@@ -97,7 +98,7 @@ Fields:
 - `timer::Function`:
     Timekeeping method. Search iterations ended when `timer() - start_time ≥ max_time`.
 """
-@with_kw mutable struct CPOMCPOWSolver{RNG<:AbstractRNG,T} <: AbstractPOMCPSolver
+@with_kw mutable struct CPOMCPOWSolver{RNG<:AbstractRNG,T}
     eps::Float64                = 0.01
     max_depth::Int              = typemax(Int)
     criterion                   = MaxCUCB(1.0,0.0) # c,nu
@@ -155,7 +156,7 @@ struct CPOMCPOWTree{B,A,O,RB}
     n_costs::Int
 
 
-    function POMCPOWTree{B,A,O,RB}(root_belief, sz::Int=1000, n_costs::Int=1) where{B,A,O,RB}
+    function CPOMCPOWTree{B,A,O,RB}(root_belief, sz::Int=1000, n_costs::Int=1) where{B,A,O,RB}
         sz = min(sz, 100_000)
         return new(
             sizehint!(Int[], sz),
@@ -172,14 +173,14 @@ struct CPOMCPOWTree{B,A,O,RB}
             Dict{Tuple{Int,A}, Int}(),
             sizehint!(Array{O}(undef, 1), sz),
 
-            root_belief.
+            root_belief,
             Dict{Int,Vector{Float64}}(),
             n_costs
         )
     end
 end
 
-@inline function push_anode!(tree::POMCPOWTree{B,A,O}, h::Int, a::A, n::Int=0, v::Float64=0.0, cv::Union{Vector{Float},Nothing}=nothing,update_lookup=true) where {B,A,O}
+@inline function push_anode!(tree::CPOMCPOWTree{B,A,O}, h::Int, a::A, n::Int=0, v::Float64=0.0, cv::Union{Vector{Float64},Nothing}=nothing,update_lookup=true) where {B,A,O}
     if cv == nothing
         cv=zeros(Float64,tree.n_costs)
     end
@@ -208,7 +209,7 @@ isroot(h::CPOWTreeObsNode) = h.node==1
     if isroot(h)
         return h.tree.root_belief
     else
-        return StateBelief(h.tree.sr_beliefs[h.node])
+        return CStateBelief(h.tree.sr_beliefs[h.node])
     end
 end
 function sr_belief(h::CPOWTreeObsNode)

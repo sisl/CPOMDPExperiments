@@ -37,7 +37,7 @@ function mean(d::CategoricalVector)
     return sum/last(d.cdf)
 end
 
-function first_mean(d::CategoricalVector{Tuple{S,Float64}}) where S
+function first_mean(d::CategoricalVector{Tuple{S,Float64,Vector{Float64}}}) where S
     sum = first(first(d.items))*first(d.cdf)
     for i in 2:length(d.items)
         sum += first(d.items[i])*(d.cdf[i]-d.cdf[i-1])

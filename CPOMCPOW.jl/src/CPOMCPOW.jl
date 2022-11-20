@@ -11,18 +11,19 @@ using D3Trees
 using Colors
 using Random
 using Printf
-using POMDPPolicies
+using POMDPTools
 
 using BasicPOMCP: convert_estimator
 import Base: insert!
 import POMDPs: action, solve, mean, rand, updater, update, initialize_belief, currentobs, history
-import POMDPModelTools: action_info
-import MCTS: n_children, next_action, isroot, node_tag, tooltip_tag
+import POMDPTools: action_info
+import MCTS: n_children, next_action, isroot, node_tag, tooltip_tag, estimate_value
 
 export
     CPOMCPOWSolver,
     CPOMCPOWPlanner,
-    CPOMCPOWTree
+    CPOMCPOWTree,
+    MaxCUCB
 
 include("categorical_vector.jl")
 include("beliefs.jl")

@@ -9,9 +9,10 @@ function action_info(pomcp::CPOMCPOWPlanner{P,NBU}, b; tree_in_info=false) where
     try
         policy = search(pomcp, tree, info)
         info[:policy] = policy
-        a = tree.a_labels[rand(p.rng,policy)]
-        tlcs = map(i->p.top_level_costs[i],policy.vals)
-        p._cost_mem = dot(tlcs,policy.probs)
+        a = tree.a_labels[rand(pomcp.solver.rng,policy)]
+        @infiltrate
+        tlcs = map(i->tree.top_level_costs[i],policy.vals)
+        pomcp._cost_mem = dot(tlcs,policy.probs)
         if pomcp.solver.tree_in_info || tree_in_info
             info[:tree] = tree
         end
@@ -23,7 +24,7 @@ end
 
 action(pomcp::CPOMCPOWPlanner, b) = first(action_info(pomcp, b))
 
-function POMDPPolicies.actionvalues(p::CPOMCPOWPlanner, b)
+function POMDPTools.actionvalues(p::CPOMCPOWPlanner, b)
     tree = make_tree(p, b)
     search(p, tree)
     values = Vector{Union{Float64,Missing}}(missing, length(actions(p.problem)))
@@ -49,7 +50,7 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
     # gc_enable(false)
     i = 0
     max_clip = (max_reward(pomcp.problem) - min_reward(pomcp.problem))/(1-discount(pomcp.problem)) ./ pomcp._tau
-    p._lambda = rand(p.rng, tree.n_costs) .* max_clip # random initialization
+    pomcp._lambda = rand(pomcp.solver.rng, tree.n_costs) .* max_clip # random initialization
     t0 = timer()
 
     while i < pomcp.solver.tree_queries
@@ -62,9 +63,9 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
         end
 
         # dual ascent with clipping
-        ha = rand(pomcp.rng, select_best(MaxCUCB(0.,0.),CPOWTreeObsNode(tree,1),pomcp._lambda))
-        p._lambda += alpha(pomcp.solver.alpha_schedule,i) .*  (tree.cv[ha] - pomcp.budget)
-        p._lambda = min.(max.(p._lambda, 0.), max_clip)
+        ha = rand(pomcp.solver.rng, select_best(MaxCUCB(0.,0.),CPOWTreeObsNode(tree,1),pomcp._lambda))
+        pomcp._lambda += alpha(pomcp.solver.alpha_schedule,i) .*  (tree.cv[ha] - pomcp.budget)
+        pomcp._lambda = min.(max.(pomcp._lambda, 0.), max_clip)
 
         if timer() - t0 >= pomcp.solver.max_time
             break
@@ -77,9 +78,7 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
         throw(AllSamplesTerminal(tree.root_belief))
     end
 
-    best_node = select_best(pomcp.solver.final_criterion, CPOWTreeObsNode(tree,1), pomcp.solver.rng)
-
-    return tree.a_labels[best_node]
+    return select_best(pomcp.solver.final_criterion, CPOWTreeObsNode(tree,1), pomcp._lambda)
 end
 
 function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, d) where {B,S,A,O}
@@ -99,7 +98,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
             if h == 1
                 a = next_action(pomcp.next_action, pomcp.problem, tree.root_belief, CPOWTreeObsNode(tree, h))
             else
-                a = next_action(pomcp.next_action, pomcp.problem, StateBelief(tree.sr_beliefs[h]), CPOWTreeObsNode(tree, h))
+                a = next_action(pomcp.next_action, pomcp.problem, CStateBelief(tree.sr_beliefs[h]), CPOWTreeObsNode(tree, h))
             end
             if !sol.check_repeat_act || !haskey(tree.o_child_lookup, (h,a))
                 push_anode!(tree, h, a,
@@ -114,7 +113,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
             if h == 1
                 action_space_iter = POMDPs.actions(pomcp.problem, tree.root_belief)
             else
-                action_space_iter = POMDPs.actions(pomcp.problem, StateBelief(tree.sr_beliefs[h]))
+                action_space_iter = POMDPs.actions(pomcp.problem, CStateBelief(tree.sr_beliefs[h]))
             end
             anode = length(tree.n)
             for a in action_space_iter
@@ -176,7 +175,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
         v, cv = simulate(pomcp, CPOWTreeObsNode(tree, hao), sp, d-1)
     end
     R = r + POMDPs.discount(pomcp.problem)*v
-    C = r + POMDPs.discount(pomcp.problem)*cv
+    C = c + POMDPs.discount(pomcp.problem)*cv
 
     tree.n[best_node] += 1
     tree.total_n[h] += 1
@@ -188,7 +187,7 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
     end
 
     # top level costs update
-    if steps == pomcp.solver.max_depth
+    if h==1
         if !(best_node in keys(tree.top_level_costs))
             tree.top_level_costs[best_node] = c 
         else
@@ -207,7 +206,7 @@ struct MaxCUCB
     nu::Float64
 end
 
-function select_best(crit::MaxCUCB, h_node::CPOWTreeObsNode, lambda::Vector{Float})
+function select_best(crit::MaxCUCB, h_node::CPOWTreeObsNode, lambda::Vector{Float64})
     tree = h_node.tree
     h = h_node.node
     ltn = log(tree.total_n[h])
@@ -244,7 +243,7 @@ function select_best(crit::MaxCUCB, h_node::CPOWTreeObsNode, lambda::Vector{Floa
     if length(best_nodes) == 1
         weights = [1.0]
     else
-        weights = solve_lp(t, best_nodes)
+        weights = solve_lp(tree, best_nodes)
     end
     return SparseCat(best_nodes, weights)  
 end

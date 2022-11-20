@@ -28,8 +28,8 @@ min_reward(p::RockSampleCPOMDP) = p.pomdp.step_penalty + min(p.pomdp.bad_rock_pe
 max_reward(p::RockSampleCPOMDP) = p.pomdp.step_penalty + max(p.pomdp.exit_reward, p.pomdp.good_rock_reward)
 
 Base.iterate(pomdp::RockSampleCPOMDP, i::Int=1) = Base.iterate(pomdp.pomdp, i)
-POMDPModelTools.render(pomdp::RockSampleCPOMDP, step;
+POMDPTools.render(pomdp::RockSampleCPOMDP, step;
     viz_rock_state=true,
     viz_belief=true,
     pre_act_text=""
-) = POMDPModelTools.render(pomdp.pomdp, step; viz_rock_state=viz_rock_state,viz_belief=viz_belief,pre_act_text=pre_act_text)
+) = POMDPTools.render(pomdp.pomdp, step; viz_rock_state=viz_rock_state,viz_belief=viz_belief,pre_act_text=pre_act_text)

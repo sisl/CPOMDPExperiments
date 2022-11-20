@@ -11,7 +11,7 @@ SOLVERS = ["pomcp", "pft", "pomcpow"]
 
 EXPERIMENTS = [("rocksample","pomcp"),
     ("lightdark1d","pft-ow"),
-    ("lightdark1d","pomcpow"),
+    ("lightdark1d","pomcpow-ow"),
     ("vdptag","pft-dpw"),
     #("spillpoint","pft-dpw"),
     ]
@@ -63,6 +63,10 @@ solvers = Dict(
     ), 
     "pomcpow" => ( # POMCPOW
         ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0)), 
-        ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0))
+        ::CPOMDP -> CPOMCPOWSolver(criterion=MaxCUCB(20.0,0.1),)
     ), 
+    "pomcpow-ow" => ( # POMCPOW
+        ::POMDP -> POMCPOWSolver(criterion=MaxUCB(20.0),enable_action_pw=false), 
+        ::CPOMDP -> CPOMCPOWSolver(criterion=MaxCUCB(20.0,0.1),enable_action_pw=false)
+    )
 )

@@ -38,7 +38,7 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
         end
         s = rand(p.rng, b)
         if !POMDPs.isterminal(p.problem, s)
-            simulate(p, s, POMCPObsNode(t,1), p.solver.max_depth)
+            simulate(p, s, CPOMCPObsNode(t,1), p.solver.max_depth)
             all_terminal = false
         end
 
@@ -154,21 +154,6 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     return R, C
 end
 
-# enable_action_pw::Bool      = true
-# enable_observation_pw::Bool = true
-# check_repeat_obs::Bool      = true
-# check_repeat_act::Bool      = true
-
-#alpha_observation::Float64  = 0.5
-#k_observation::Float64      = 10.0
-#alpha_action::Float64       = 0.5
-#k_action::Float64           = 10.0
-#
-#a_lookup
-#transitions 
-#n_a_children
-#unique_transitions
-
 function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     if steps == 0 || isterminal(p.problem, s)
         return 0.0, zeros(Float64, hnode.tree.n_costs)
@@ -180,17 +165,18 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     # action pw
     if sol.enable_action_pw
         if length(t.children[h]) <= sol.k_action*t.total_n[h]^sol.alpha_action
-            a = next_action(p.next_action, p.pomdp, s, hnode)
+            a = next_action(p.next_action, p.problem, s, hnode)
             if !sol.check_repeat_act || !haskey(t.a_loookup,(h,a))
                 insert_action_node!(t,h,a)
             end
+        end
     elseif isempty(t.children[h]) 
-        for a in actions(p.pomdp, s)
+        for a in actions(p.problem, s)
             insert_action_node!(t,h,a)
         end
     end
 
-    tree.total_n[h] += 1
+    t.total_n[h] += 1
     acts = action_policy_UCB(hnode, p._lambda, sol.c, sol.nu)
     p._best_node_mem = acts.vals
     ha = rand(p.rng, acts)
@@ -211,9 +197,9 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
 
         if !sol.check_repeat_obs
             t.n_a_children[ha] += 1
-        elseif !((ha,hao) in tree.unique_transitions)
-            push!(tree.unique_transitions, (ha,hao))
-            tree.n_a_children[ha] += 1
+        elseif !((ha,hao) in t.unique_transitions)
+            push!(t.unique_transitions, (ha,hao))
+            t.n_a_children[ha] += 1
         end
     else
         hao, r, c = rand(p.rng,t.transitions[ha])

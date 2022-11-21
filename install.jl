@@ -1,5 +1,5 @@
 using Pkg
-
+Pkg.activate(".")
 packages = [
     # Misc github example
     # PackageSpec(url="https://github.com/sisl/AdversarialDriving.jl"),

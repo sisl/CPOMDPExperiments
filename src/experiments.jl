@@ -9,13 +9,15 @@ function POMDPs.updater(p::AbstractMCTSPlanner)
     # return SIRParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
 end
 
-function test(model::String, solver::String)
-    
-    println("Testing POMDP $(model) with solver $(solver)")
-    problem_test(models[model][1], solvers[solver][1], "test_pomdp_$(model)_$(solver)")
-
-    println("Testing CPOMDP $(model) with solver $(solver)")
-    problem_test(models[model][2], solvers[solver][2], "test_cpomdp_$(model)_$(solver)")
+function test(model::String, solver::String; test_pomdp::Bool=true, test_cpomdp::Bool=true)
+    if test_pomdp
+        println("Testing POMDP $(model) with solver $(solver)")
+        problem_test(models[model][1], solvers[solver][1], "test_pomdp_$(model)_$(solver)")
+    end
+    if test_cpomdp
+        println("Testing CPOMDP $(model) with solver $(solver)")
+        problem_test(models[model][2], solvers[solver][2], "test_cpomdp_$(model)_$(solver)")
+    end
 end
 
 function generate_gif(p::POMDP, s, fname::String)

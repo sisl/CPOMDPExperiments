@@ -34,8 +34,11 @@ using D3Trees
 export
     # here
     AbstractCPOMCPSolver,
+    AbstractCPOMCPPlanner,
     CPOMCPSolver,
     CPOMCPPlanner,
+    CPOMCPDPWSolver,
+    CPOMCPDPWPlanner,
     updater,
     update,
     initialize_belief,

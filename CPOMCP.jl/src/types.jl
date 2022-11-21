@@ -231,7 +231,7 @@ function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
 
                           sizehint!(Int[], sz),
                           sizehint!(Float64[], sz),
-                          sizehint!(Vector{Float64}, sz), # cv
+                          sizehint!(Vector{Float64}[], sz), # cv
                           sizehint!(A[], sz),
                           Dict{Tuple{Int,A},Int}(), # a_lookup
                           
@@ -283,7 +283,7 @@ mutable struct CPOMCPDPWPlanner{P, SE, RNG} <: AbstractCPOMCPPlanner{P,SE,RNG}
     _tau::Vector{Float64}       # clips for dual ascent
 end
 
-function CPOMCPDPWPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
+function CPOMCPDPWPlanner(solver::CPOMCPDPWSolver, pomdp::CPOMDP)
     se = convert_estimator(solver.estimate_value, solver, pomdp)
     return CPOMCPDPWPlanner(solver, pomdp, se, solver.rng, solver.next_action,
         costs_limit(pomdp), Int[], nothing, nothing, nothing, costs_limit(pomdp))

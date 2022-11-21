@@ -1,6 +1,3 @@
-MODELS = ["rocksample", "lightdark1d", "vdptag", "roomba"]
-SOLVERS = ["pomcp", "pft", "pomcpow"]
-
 # model list. environment:(pomdp, cpomdp)
 # cpomcp paper has following environments (nxn grid, m rocks, h half_efficiency_dist): (5,5,4), (5,7,20), (7,8,20), (11,11,20)
 # defaults: |actions| = m+5, |obs| = 3, reward_range=20, discount=0.95, smart_move_prob=0.95, uncertainty_count=0, 
@@ -52,6 +49,14 @@ solvers = Dict(
     "pomcp" => ( #POMCP
         ::POMDP -> POMCPSolver(tree_queries=10000, c=2), 
         ::CPOMDP -> CPOMCPSolver(tree_queries=10000, c=2)
+    ), 
+    "pomcp-ow" => ( #POMCP-OW
+        ::POMDP -> nothing, 
+        ::CPOMDP -> CPOMCPDPWSolver(tree_queries=10000, c=2, enable_action_pw=false)
+    ), 
+    "pomcp-dpw" => ( #POMCP-DPW
+        ::POMDP -> POMCPDPWSolver(tree_queries=10000, c=2), 
+        ::CPOMDP -> CPOMCPDPWSolver(tree_queries=10000, c=2)
     ), 
     "pft-dpw" => ( #PFT-DPW
         p::POMDP -> BeliefMCTSSolver(DPWSolver(), ParticleFilters.SIRParticleFilter(p, 1000)),

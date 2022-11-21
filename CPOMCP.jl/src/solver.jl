@@ -1,4 +1,4 @@
-function POMDPTools.action_info(p::CPOMCPPlanner, b; tree_in_info=false)
+function POMDPTools.action_info(p::AbstractCPOMCPPlanner, b; tree_in_info=false)
     local a::actiontype(p.problem)
     info = Dict{Symbol, Any}()
     try
@@ -19,9 +19,9 @@ function POMDPTools.action_info(p::CPOMCPPlanner, b; tree_in_info=false)
     return a, info
 end
 
-action(p::CPOMCPPlanner, b) = first(action_info(p, b))
+action(p::AbstractCPOMCPPlanner, b) = first(action_info(p, b))
 
-function search(p::CPOMCPPlanner, b, t::CPOMCPTree, info::Dict)
+function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
     all_terminal = true
     nquery = 0
     start_us = CPUtime_us()
@@ -105,7 +105,7 @@ function action_policy_UCB(hnode::CPOMCPObsNode, lambda::Vector{Float64}, c::Flo
     return SparseCat(best_nodes, weights)
 end
 
-function solve_lp(t::CPOMCPTree, best_nodes::Vector{Int})
+function solve_lp(t::AbstractCPOMCPTree, best_nodes::Vector{Int})
     # error("Multiple CPOMCP best actions not implemented")
     # random for now
     return ones(Float64, length(best_nodes)) / length(best_nodes)
@@ -150,3 +150,46 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     end
     return R, C
 end
+
+# FIXME
+"""
+function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
+    if steps == 0 || isterminal(p.problem, s)
+        return 0.0, zeros(Float64, hnode.tree.n_costs)
+    end
+
+    t = hnode.tree
+    h = hnode.node
+    acts = action_policy_UCB(hnode, p._lambda, p.solver.c, p.solver.nu)
+    p._best_node_mem = acts.vals
+    ha = rand(p.rng, acts)
+    a = t.a_labels[ha]
+
+    sp, o, r, c = @gen(:sp, :o, :r, :c)(p.problem, s, a, p.rng)
+    
+    hao = get(t.o_lookup, (ha, o), 0)
+    if hao == 0
+        hao = insert_obs_node!(t, p.problem, ha, sp, o)
+        v, cv = estimate_value(p.solved_estimator,
+                           p.problem,
+                           sp,
+                           CPOMCPObsNode(t, hao),
+                           steps-1)
+    else
+        v, cv = simulate(p, sp, CPOMCPObsNode(t, hao), steps-1)
+    end
+    R = r + discount(p.problem)*v
+    C = c + discount(p.problem)*cv
+
+    t.total_n[h] += 1
+    t.n[ha] += 1
+    t.v[ha] += (R-t.v[ha])/t.n[ha]
+    t.cv[ha] += (C-t.cv[ha])/t.n[ha]
+
+    # top level cost estimator
+    if steps == p.solver.max_depth
+        t.top_level_costs[ha] += (c-t.top_level_costs[ha])/t.n[ha]
+    end
+    return R, C
+end
+"""

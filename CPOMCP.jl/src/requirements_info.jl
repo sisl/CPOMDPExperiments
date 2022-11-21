@@ -3,14 +3,14 @@ function POMDPLinter.requirements_info(solver::AbstractCPOMCPSolver, problem::CP
     requirements_info(policy, b)
 end
 
-POMDPs.requirements_info(policy::CPOMCPPlanner, b) = @show_requirements action(policy, b)
+POMDPs.requirements_info(policy::AbstractCPOMCPPlanner, b) = @show_requirements action(policy, b)
 
-@POMDP_require action(p::CPOMCPPlanner, b) begin
+@POMDP_require action(p::AbstractCPOMCPPlanner, b) begin
     tree = CPOMCPTree(p.problem, b, p.solver.tree_queries)
     @subreq search(p, b, tree)
 end
 
-@POMDP_require search(p::CPOMCPPlanner, b, t::CPOMCPTree) begin
+@POMDP_require search(p::AbstractCPOMCPPlanner, b, t::CPOMCPTree) begin
     P = typeof(p.problem)
     @req rand(::typeof(p.rng), ::typeof(b))
     s = rand(p.rng, b)
@@ -18,7 +18,7 @@ end
     @subreq simulate(p, s, CPOMCPObsNode(t, 1), p.solver.max_depth)
 end
 
-@POMDP_require simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int) begin
+@POMDP_require simulate(p::AbstractCPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int) begin
     P = typeof(p.problem)
     S = statetype(P)
     A = actiontype(P)

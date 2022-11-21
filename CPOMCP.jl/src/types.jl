@@ -11,8 +11,18 @@ end
 InverseAlphaSchedule() = InverseAlphaSchedule(1.)
 alpha(sched::InverseAlphaSchedule, query::Int) = sched.scale/query
 
-### Solver ###
 abstract type AbstractCPOMCPSolver <: Solver end
+abstract type AbstractCPOMCPTree{A,O} end
+abstract type AbstractCPOMCPPlanner{P,SE,RNG} <: Policy end
+
+Random.seed!(p::AbstractCPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
+
+struct CPOMCPObsNode{A,O} <: BeliefNode
+    tree::AbstractCPOMCPTree{A,O}
+    node::Int
+end
+
+### CPOMCP Solver, Tree, Planner ###
 
 """
     CPOMCPSolver(#=keyword arguments=#)
@@ -73,7 +83,8 @@ Partially Observable Monte Carlo Planning Solver.
     estimate_value::Any     = RolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
 end
 
-struct CPOMCPTree{A,O}
+
+struct CPOMCPTree{A,O} <: AbstractCPOMCPTree{A,O}
     # for each observation-terminated history
     total_n::Vector{Int}                 # total number of visits for an observation node
     children::Vector{Vector{Int}}        # indices of each of the children
@@ -136,12 +147,7 @@ function insert_action_node!(t::CPOMCPTree, h::Int, a)
     return length(t.n)
 end
 
-struct CPOMCPObsNode{A,O} <: BeliefNode
-    tree::CPOMCPTree{A,O}
-    node::Int
-end
-
-mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
+mutable struct CPOMCPPlanner{P, SE, RNG} <: AbstractCPOMCPPlanner{P,SE,RNG}
     solver::CPOMCPSolver
     problem::P
     solved_estimator::SE
@@ -155,38 +161,17 @@ mutable struct CPOMCPPlanner{P, SE, RNG} <: Policy
 end
 
 function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
-    se = convert_estimator(solver.estimate_value, solver, pomdp) # FIXME??
+    se = convert_estimator(solver.estimate_value, solver, pomdp)
     return CPOMCPPlanner(solver, pomdp, se, solver.rng, 
         costs_limit(pomdp), Int[], nothing, nothing, nothing, costs_limit(pomdp))
 end
 
 solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
-Random.seed!(p::CPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
+### CPOMCP-DPW Solver, Tree, Planner ###
 
-struct CPOMCPBudgetUpdateWrapper <: Updater
-    updater::Updater
-    planner::CPOMCPPlanner
-end
 
-function update(up::CPOMCPBudgetUpdateWrapper, b, a, o)
-    if up.planner._tree != nothing
-        up.planner.budget = (up.planner.budget - up.planner._cost_mem)/discount(up.planner.problem)
-    end
-    return update(up.updater, b, a, o)
-end
 
-function updater(p::CPOMCPPlanner)
-    P = typeof(p.problem)
-    # p.budget = (p.budget - c)/discount(p.problem)
-    return CPOMCPBudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
-        p)
-    # XXX It would be better to automatically use an SIRParticleFilter if possible
-    # if !@implemented ParticleFilters.obs_weight(::P, ::S, ::A, ::S, ::O)
-    #     return UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
-    # end
-    # return SIRParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
-end
 
-initialize_belief(bu::CPOMCPBudgetUpdateWrapper, dist) = initialize_belief(bu.updater, dist)
+
 

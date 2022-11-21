@@ -1,5 +1,7 @@
 # CPOMDPExperiments
 
+Using julia 1.6.7
+
 To install:
 
 ```

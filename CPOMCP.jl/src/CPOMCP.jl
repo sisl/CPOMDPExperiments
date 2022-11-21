@@ -55,6 +55,7 @@ export
     tooltip_tag
 
 include("types.jl")
+include("updater.jl")
 include("solver.jl")
 include("rollout.jl")
 include("visualization.jl")

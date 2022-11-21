@@ -5,12 +5,17 @@ end
 
 POMDPs.requirements_info(policy::AbstractCPOMCPPlanner, b) = @show_requirements action(policy, b)
 
-@POMDP_require action(p::AbstractCPOMCPPlanner, b) begin
+@POMDP_require action(p::CPOMCPPlanner, b) begin
     tree = CPOMCPTree(p.problem, b, p.solver.tree_queries)
     @subreq search(p, b, tree)
 end
 
-@POMDP_require search(p::AbstractCPOMCPPlanner, b, t::CPOMCPTree) begin
+@POMDP_require action(p::CPOMCPDPWPlanner, b) begin
+    tree = CPOMCPDPWTree(p.problem, b, p.solver.tree_queries)
+    @subreq search(p, b, tree)
+end
+
+@POMDP_require search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree) begin
     P = typeof(p.problem)
     @req rand(::typeof(p.rng), ::typeof(b))
     s = rand(p.rng, b)

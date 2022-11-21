@@ -15,12 +15,13 @@ abstract type AbstractCPOMCPSolver <: Solver end
 abstract type AbstractCPOMCPTree{A,O} end
 abstract type AbstractCPOMCPPlanner{P,SE,RNG} <: Policy end
 
-Random.seed!(p::AbstractCPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
-
 struct CPOMCPObsNode{A,O} <: BeliefNode
     tree::AbstractCPOMCPTree{A,O}
     node::Int
 end
+children(n::CPOMCPObsNode) = n.tree.children[n.node]
+n_children(n::CPOMCPObsNode) = length(children(n))
+isroot(n::CPOMCPObsNode) = n.node == 1
 
 ### CPOMCP Solver, Tree, Planner ###
 
@@ -89,7 +90,6 @@ struct CPOMCPTree{A,O} <: AbstractCPOMCPTree{A,O}
     total_n::Vector{Int}                 # total number of visits for an observation node
     children::Vector{Vector{Int}}        # indices of each of the children
     o_labels::Vector{O}                  # actual observation corresponding to this observation node
-
     o_lookup::Dict{Tuple{Int, O}, Int}   # mapping from (action node index, observation) to an observation node index
 
     # for each action-terminated history
@@ -112,7 +112,6 @@ function CPOMCPTree(pomdp::CPOMDP, b, sz::Int=1000)
     return CPOMCPTree{A,O}(sizehint!(Int[0], sz),
                           sizehint!(Vector{Int}[collect(1:length(acts))], sz),
                           sizehint!(Array{O}(undef, 1), sz),
-
                           sizehint!(Dict{Tuple{Int,O},Int}(), sz),
 
                           sizehint!(zeros(Int, length(acts)), sz),
@@ -166,9 +165,132 @@ function CPOMCPPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
         costs_limit(pomdp), Int[], nothing, nothing, nothing, costs_limit(pomdp))
 end
 
+Random.seed!(p::AbstractCPOMCPPlanner, seed) = Random.seed!(p.rng, seed)
 solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 
 ### CPOMCP-DPW Solver, Tree, Planner ###
+@with_kw mutable struct CPOMCPDPWSolver <: AbstractCPOMCPSolver
+    max_depth::Int          = 20
+    c::Float64              = 1.0
+    nu::Float64             = 0.01 # slack to give when searching for multiple best actions
+    tree_queries::Int       = 1000
+    
+    enable_action_pw::Bool      = true
+    enable_observation_pw::Bool = true
+    check_repeat_obs::Bool      = true
+    check_repeat_act::Bool      = true
+    
+    alpha_observation::Float64  = 0.5
+    k_observation::Float64      = 10.0
+    alpha_action::Float64       = 0.5
+    k_action::Float64           = 10.0
+
+    max_time::Float64       = Inf
+    tree_in_info::Bool      = false
+    default_action::Any     = ExceptionRethrow()
+    rng::AbstractRNG        = Random.GLOBAL_RNG
+    next_action::Any            = RandomActionGenerator(rng)
+    alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
+    estimate_value::Any     = RolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
+end
+
+
+struct CPOMCPDPWTree{A,O} <: AbstractCPOMCPTree{A,O}
+    # for each observation-terminated history
+    total_n::Vector{Int}                 # total number of visits for an observation node
+    children::Vector{Vector{Int}}        # indices of each of the children
+    o_labels::Vector{O}                  # actual observation corresponding to this observation node
+    o_lookup::Dict{Tuple{Int,O}, Int}   # mapping from (action node index, observation) to an observation node index
+
+    # for each action-terminated history
+    n::Vector{Int}                       # number of visits for an action node
+    v::Vector{Float64}                   # value estimate for an action node
+    cv::Vector{Vector{Float64}}          # cost estimates for an action node
+    a_labels::Vector{A}                  # actual action corresponding to this action node
+    a_lookup::Dict{Tuple{Int,A},Int}     # map from (hnode,a)->hanode
+
+    # transitions
+    transitions::Vector{Vector{Tuple{Int,Float64,Vector{Float64}}}} # map (hanode to (haonode,r,c))
+    n_a_children::Vector{Int} # number of children from each ha node
+    unique_transitions::Set{Tuple{Int,Int}} # set of unique (sanode, spnode) transitions
+
+    # constraints
+    n_costs::Int                         # number of costs
+    top_level_costs::Vector{Vector{Float64}}    # top-level average cost (only if step)
+end
+
+function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
+    A = actiontype(pomdp)
+    O = obstype(pomdp)
+    sz = min(100_000, sz)
+    tsh = 20 # top-level size hint
+    return CPOMCPDPWTree{A,O}(sizehint!(Int[0], sz),
+                          sizehint!(Vector{Int}[[]], sz),
+                          sizehint!(Array{O}(undef, 1), sz),
+                          sizehint!(Dict{Tuple{Int,O},Int}(), sz),
+
+                          sizehint!(Int[], sz),
+                          sizehint!(Float64[], sz),
+                          sizehint!(Vector{Float64}, sz), # cv
+                          sizehint!(A[], sz),
+                          Dict{Tuple{Int,A},Int}(), # a_lookup
+                          
+                          sizehint!(Vector{Tuple{Int,Float64,Vector{Float64}}}[], sz),
+                          sizehint!(Int[], sz), #n_a_children
+                          Set{Tuple{Int,Int}}(),
+                          
+                          n_costs(pomdp),
+                          sizehint!(Vector{Float64}[],tsh) # top_level_costs
+                         )
+end
+
+function insert_obs_node!(t::CPOMCPDPWTree, pomdp::CPOMDP, ha::Int, sp, o)
+    push!(t.total_n, 0)
+    push!(t.children, Int[])
+    push!(t.o_labels, o)
+    hao = length(t.total_n)
+    t.o_lookup[(ha, o)] = hao
+    return hao
+end
+
+function insert_action_node!(t::CPOMCPDPWTree, h::Int, a)
+    push!(t.n, 0)
+    push!(t.v, 0.0)
+    push!(t.a_labels, a)
+    push!(t.cv, zeros(Float64, t.n_costs))
+    push!(t.transitions, Vector{Tuple{Int,Float64,Vector{Float64}}}[])
+    ha = length(t.n)
+    push!(t.children[h], ha)
+    push!(t.n_a_children, 0)
+    t.a_lookup[(h, a)] = ha
+    return ha
+end
+
+Base.isempty(tree::CPOMCPDPWTree) = isempty(tree.n) && isempty(tree.v)
+
+
+mutable struct CPOMCPDPWPlanner{P, SE, RNG} <: AbstractCPOMCPPlanner{P,SE,RNG}
+    solver::CPOMCPDPWSolver
+    problem::P
+    solved_estimator::SE
+    rng::RNG
+    next_action::Any
+    budget::Vector{Float64}     # remaining budget for constraint search
+    _best_node_mem::Vector{Int}
+    _tree::Union{Nothing, Any}
+    _cost_mem::Union{Nothing,Vector{Float64}}   # estimate for one-step cost
+    _lambda::Union{Nothing,Vector{Float64}}    # weights for dual ascent
+    _tau::Vector{Float64}       # clips for dual ascent
+end
+
+function CPOMCPDPWPlanner(solver::CPOMCPSolver, pomdp::CPOMDP)
+    se = convert_estimator(solver.estimate_value, solver, pomdp)
+    return CPOMCPDPWPlanner(solver, pomdp, se, solver.rng, solver.next_action,
+        costs_limit(pomdp), Int[], nothing, nothing, nothing, costs_limit(pomdp))
+end
+
+solve(solver::CPOMCPDPWSolver, pomdp::CPOMDP) = CPOMCPDPWPlanner(solver, pomdp)
+
 
 
 

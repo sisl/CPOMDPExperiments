@@ -10,7 +10,7 @@ function update(up::CPOMCPBudgetUpdateWrapper, b, a, o)
     return update(up.updater, b, a, o)
 end
 
-function updater(p::CPOMCPPlanner)
+function updater(p::AbstractCPOMCPPlanner)
     P = typeof(p.problem)
     return CPOMCPBudgetUpdateWrapper(UnweightedParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng),
         p)

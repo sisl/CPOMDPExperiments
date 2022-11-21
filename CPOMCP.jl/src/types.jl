@@ -12,11 +12,11 @@ InverseAlphaSchedule() = InverseAlphaSchedule(1.)
 alpha(sched::InverseAlphaSchedule, query::Int) = sched.scale/query
 
 abstract type AbstractCPOMCPSolver <: Solver end
-abstract type AbstractCPOMCPTree{A,O} end
+abstract type AbstractCPOMCPTree end
 abstract type AbstractCPOMCPPlanner{P,SE,RNG} <: Policy end
 
-struct CPOMCPObsNode{A,O} <: BeliefNode
-    tree::AbstractCPOMCPTree{A,O}
+struct CPOMCPObsNode <: BeliefNode
+    tree::AbstractCPOMCPTree
     node::Int
 end
 children(n::CPOMCPObsNode) = n.tree.children[n.node]
@@ -85,7 +85,7 @@ Partially Observable Monte Carlo Planning Solver.
 end
 
 
-struct CPOMCPTree{A,O} <: AbstractCPOMCPTree{A,O}
+struct CPOMCPTree{A,O} <: AbstractCPOMCPTree
     # for each observation-terminated history
     total_n::Vector{Int}                 # total number of visits for an observation node
     children::Vector{Vector{Int}}        # indices of each of the children
@@ -195,12 +195,13 @@ solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
 end
 
 
-struct CPOMCPDPWTree{A,O} <: AbstractCPOMCPTree{A,O}
+struct CPOMCPDPWTree{S,A,O} <: AbstractCPOMCPTree
     # for each observation-terminated history
     total_n::Vector{Int}                 # total number of visits for an observation node
     children::Vector{Vector{Int}}        # indices of each of the children
     o_labels::Vector{O}                  # actual observation corresponding to this observation node
     o_lookup::Dict{Tuple{Int,O}, Int}   # mapping from (action node index, observation) to an observation node index
+    states::Vector{Vector{S}}           # vector of states at each observation node
 
     # for each action-terminated history
     n::Vector{Int}                       # number of visits for an action node
@@ -210,7 +211,7 @@ struct CPOMCPDPWTree{A,O} <: AbstractCPOMCPTree{A,O}
     a_lookup::Dict{Tuple{Int,A},Int}     # map from (hnode,a)->hanode
 
     # transitions
-    transitions::Vector{Vector{Tuple{Int,Float64,Vector{Float64}}}} # map (hanode to (haonode,r,c))
+    transitions::Vector{Vector{Int}} # map (hanode to possible haonode)
     n_a_children::Vector{Int} # number of children from each ha node
     unique_transitions::Set{Tuple{Int,Int}} # set of unique (sanode, spnode) transitions
 
@@ -220,14 +221,16 @@ struct CPOMCPDPWTree{A,O} <: AbstractCPOMCPTree{A,O}
 end
 
 function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
+    S = statetype(pomdp)
     A = actiontype(pomdp)
     O = obstype(pomdp)
     sz = min(100_000, sz)
     tsh = 20 # top-level size hint
-    return CPOMCPDPWTree{A,O}(sizehint!(Int[0], sz),
+    return CPOMCPDPWTree{S,A,O}(sizehint!(Int[0], sz),
                           sizehint!(Vector{Int}[[]], sz),
                           sizehint!(Array{O}(undef, 1), sz),
                           sizehint!(Dict{Tuple{Int,O},Int}(), sz),
+                          sizehint!([Array{S}(undef, 1)], sz),
 
                           sizehint!(Int[], sz),
                           sizehint!(Float64[], sz),
@@ -235,7 +238,7 @@ function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
                           sizehint!(A[], sz),
                           Dict{Tuple{Int,A},Int}(), # a_lookup
                           
-                          sizehint!(Vector{Tuple{Int,Float64,Vector{Float64}}}[], sz),
+                          sizehint!(Vector{Int}[], sz),
                           sizehint!(Int[], sz), #n_a_children
                           Set{Tuple{Int,Int}}(),
                           
@@ -244,8 +247,9 @@ function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
                          )
 end
 
-function insert_obs_node!(t::CPOMCPDPWTree, pomdp::CPOMDP, ha::Int, sp, o)
+function insert_obs_node!(t::CPOMCPDPWTree{S}, pomdp::CPOMDP, ha::Int, sp::S, o) where {S}
     push!(t.total_n, 0)
+    push!(t.states, S[sp])
     push!(t.children, Int[])
     push!(t.o_labels, o)
     hao = length(t.total_n)
@@ -253,13 +257,16 @@ function insert_obs_node!(t::CPOMCPDPWTree, pomdp::CPOMDP, ha::Int, sp, o)
     return hao
 end
 
-function insert_action_node!(t::CPOMCPDPWTree, h::Int, a)
+function insert_action_node!(t::CPOMCPDPWTree, h::Int, a;top_level=false)
     push!(t.n, 0)
     push!(t.v, 0.0)
     push!(t.a_labels, a)
     push!(t.cv, zeros(Float64, t.n_costs))
-    push!(t.transitions, Vector{Tuple{Int,Float64,Vector{Float64}}}[])
+    push!(t.transitions, Vector{Float64}[])
     ha = length(t.n)
+    if top_level
+        push!(t.top_level_costs, zeros(Float64, t.n_costs))
+    end
     push!(t.children[h], ha)
     push!(t.n_a_children, 0)
     t.a_lookup[(h, a)] = ha

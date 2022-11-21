@@ -30,12 +30,13 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
     start_us = CPUtime_us()
     max_clip = (max_reward(p.problem) - min_reward(p.problem))/(1-discount(p.problem)) ./ p._tau
     p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
-
+    
     for i in 1:p.solver.tree_queries
         nquery += 1
         if CPUtime_us() - start_us >= 1e6*p.solver.max_time
             break
         end
+        
         s = rand(p.rng, b)
         if !POMDPs.isterminal(p.problem, s)
             simulate(p, s, CPOMCPObsNode(t,1), p.solver.max_depth)
@@ -161,18 +162,18 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     sol = p.solver
     t = hnode.tree
     h = hnode.node
-    
+    top_level = steps==p.solver.max_depth
     # action pw
     if sol.enable_action_pw
         if length(t.children[h]) <= sol.k_action*t.total_n[h]^sol.alpha_action
             a = next_action(p.next_action, p.problem, s, hnode)
             if !sol.check_repeat_act || !haskey(t.a_loookup,(h,a))
-                insert_action_node!(t,h,a)
+                insert_action_node!(t,h,a;top_level=top_level)
             end
         end
     elseif isempty(t.children[h]) 
         for a in actions(p.problem, s)
-            insert_action_node!(t,h,a)
+            insert_action_node!(t,h,a;top_level=top_level)
         end
     end
 
@@ -188,12 +189,13 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
         sp, o, r, c = @gen(:sp, :o, :r, :c)(p.problem, s, a, p.rng)
         if sol.check_repeat_obs && haskey(t.o_lookup, (ha,o))
             hao = t.o_lookup[(ha,o)]
+            push!(t.states[hao],sp)
         else
             hao = insert_obs_node!(t, p.problem, ha, sp, o)
             new_node = true
         end
         
-        push!(t.transitions[ha],(hao, r, c))
+        push!(t.transitions[ha],hao)
 
         if !sol.check_repeat_obs
             t.n_a_children[ha] += 1
@@ -202,7 +204,10 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
             t.n_a_children[ha] += 1
         end
     else
-        hao, r, c = rand(p.rng,t.transitions[ha])
+        hao= rand(p.rng,t.transitions[ha])
+        sp = rand(p.rng,t.states[hao])
+        r = reward(p.problem,s,a,sp)
+        c = costs(p.problem,s,a,sp)
     end
     
     if new_node
@@ -223,9 +228,7 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     # top level cost estimator
     if steps == p.solver.max_depth
         tlcs = length(t.top_level_costs)
-        if ha == tlcs + 1
-            push!(t.top_level_costs,c)
-        elseif ha <= tlcs
+        if ha <= tlcs
             t.top_level_costs[ha] += (c-t.top_level_costs[ha])/t.n[ha]
         else
             error("Improper indexing of top level costs")

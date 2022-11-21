@@ -7,7 +7,7 @@ using CPOMDPExperiments
 
 #test("rocksample","pomcp")
 
-#test("lightdark1d","pomcp-ow", test_pomdp=false)
+test("lightdark1d","pomcp-ow", test_pomdp=false)
 test("lightdark1d","pft-ow")
 #test("lightdark1d","pomcpow-ow")
 

@@ -14,7 +14,7 @@ EXPERIMENTS = [("rocksample","pomcp"),
     ]
 
 models = Dict(
-    "rocksample" => (
+    "rocksample" => 
     #RockSamplePOMDP(rocks_positions=[(2,3), (4,4), (4,2)], 
     #    sensor_efficiency=20.0,
     #    discount_factor=0.95, 
@@ -23,21 +23,10 @@ models = Dict(
     #    sensor_efficiency=20.0,
     #    discount_factor=0.95, 
     #    good_rock_reward = 20.0),
-    RockSamplePOMDP(5,5),
     RockSampleCPOMDP(pomdp=RockSamplePOMDP(5,5)),
-    ),
-    "lightdark1d" => (
-    LightDark1D(),
-    CLightDark1D(),
-    ),
-    "vdptag" => (
-    VDPTagPOMDP(),
-    CVDPTagPOMDP(),
-    ),
-    "spillpoint" => (
-    SpillpointInjectionPOMDP(),
-    SpillpointInjectionCPOMDP(),
-    ),
+    "lightdark1d" => CLightDark1D(),
+    "vdptag" => VDPTagCPOMDP(),
+    "spillpoint" => SpillpointInjectionCPOMDP(),
     #"roomba" => (
     #RoombaPOMDP(),
     #RoombaPOMDP(),

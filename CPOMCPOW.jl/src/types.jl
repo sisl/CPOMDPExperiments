@@ -98,7 +98,7 @@ Fields:
 - `timer::Function`:
     Timekeeping method. Search iterations ended when `timer() - start_time ≥ max_time`.
 """
-@with_kw mutable struct CPOMCPOWSolver{RNG<:AbstractRNG,T}
+@with_kw mutable struct CPOMCPOWSolver{RNG<:AbstractRNG,T} <: Solver
     eps::Float64                = 0.01
     max_depth::Int              = typemax(Int)
     criterion                   = MaxCUCB(1.0,0.0) # c,nu

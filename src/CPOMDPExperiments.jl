@@ -7,6 +7,7 @@ using Parameters
 using POMDPGifs
 using Cairo
 using ParticleFilters
+using LinearAlgebra
 
 using POMDPs
 using POMDPTools
@@ -42,9 +43,12 @@ include("cpomdps/cspillpoint.jl")
 
 # testing configurations
 export
-    test,
-    run_all_tests
-include("configs.jl")
+    run_pomdp_simulation,
+    run_cpomdp_simulation,
+    CLightDark1D,
+    RockSampleCPOMDP,
+    CVDPTagPOMDP,
+    SpillpointInjectionCPOMDP
 include("experiments.jl")
 
 end # module

@@ -3,7 +3,7 @@ struct RockSampleCPOMDP{P<:RockSamplePOMDP,S,A,O} <: ConstrainPOMDPWrapper{P,S,A
     bad_rock_budget::Float64
 end
 
-function RockSampleCPOMDP(;pomdp::P=RockSamplePOMDP(bad_rock_penalty=0.), # default 0 incorrect_r, goes into cost
+function RockSampleCPOMDP(;pomdp::P=RockSamplePOMDP(), # default 0 incorrect_r, goes into cost
     bad_rock_budget::Float64=3.,
     ) where {P<:RockSamplePOMDP}
     return RockSampleCPOMDP{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,bad_rock_budget)

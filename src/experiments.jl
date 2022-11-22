@@ -9,17 +9,6 @@ function POMDPs.updater(p::AbstractMCTSPlanner)
     # return SIRParticleFilter(p.problem, p.solver.tree_queries, rng=p.rng)
 end
 
-function test(model::String, solver::String; test_pomdp::Bool=true, test_cpomdp::Bool=true)
-    if test_pomdp
-        println("Testing POMDP $(model) with solver $(solver)")
-        problem_test(models[model][1], solvers[solver][1], "test_pomdp_$(model)_$(solver)")
-    end
-    if test_cpomdp
-        println("Testing CPOMDP $(model) with solver $(solver)")
-        problem_test(models[model][2], solvers[solver][2], "test_cpomdp_$(model)_$(solver)")
-    end
-end
-
 function generate_gif(p::POMDP, s, fname::String)
     try
         sim = GifSimulator(filename=fname, max_steps=30)
@@ -50,22 +39,52 @@ function step_through(p::CPOMDP, planner::Policy, max_steps=100)
 end
 
 
-function problem_test(p::Union{POMDP,CPOMDP}, solver_func::Function, name::String)
-    solver = solver_func(p)
-    planner = solve(solver, p)
-
-    # stepthrough
-    step_through(p,planner)
-
-    
-    # gif
-    generate_gif(p,planner,name)
-
-    return p, planner
+function get_tree(planner)
+    if hasproperty(planner, :tree)
+        return planner.tree
+    elseif hasproperty(planner, :_tree)
+        return planner._tree
+    else
+        @error "Can't find tree for planner of type $(typeof(planner))"
+    end
 end
 
-function run_all_tests()
-    for (m,s) in EXPERIMENTS
-        test(m,s)
+function run_cpomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_steps=100)
+    planner = solve(solver, p)
+    R = 0
+    C = zeros(n_costs(p))
+    RC = 0
+    γ = 1
+    tree_hist = Any[deepcopy(get_tree(planner))]
+    #@infiltrate
+    for (s, a, o, r, c,sp) in stepthrough(p, planner, "s,a,o,r,c,sp", max_steps=max_steps)
+        R += POMDPs.reward(p.pomdp,s,a,sp) * γ
+        C .+= c.*γ
+        RC += γ*r # the reward already includes a -λc term. 
+
+        γ *= discount(p)
+        push!(tree_hist, deepcopy(get_tree(planner)))
     end
+    tree_hist, R, C, RC
+end
+
+function run_pomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_steps=100)
+    planner = solve(solver, p.pomdp)
+    R = 0
+    C = zeros(n_costs(p))
+    RC = 0
+    γ = 1
+    hist = []
+    #@infiltrate
+    for (s, a, o, r,sp,b) in stepthrough(p.pomdp, planner, "s,a,o,r,sp,b", max_steps=max_steps)
+        c = costs(p,s,a,sp)
+        R += r * γ
+        C .+= c.*γ
+        RC += γ*(r-p.λ⋅c) # the reward already includes a -λc term. 
+
+        γ *= discount(p)
+
+        push!(hist, (;s, a, o, r, sp, b, tree=deepcopy(get_tree(planner))))
+    end
+    hist, R, C, RC
 end

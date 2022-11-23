@@ -52,6 +52,14 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
     pomcp._lambda = rand(pomcp.solver.rng, tree.n_costs) .* max_clip # random initialization
     t0 = timer()
 
+    if pomcp.solver.search_progress_info
+        info[:lambda] = sizehint!(Vector{Float64}[pomcp._lambda], pomcp.solver.tree_queries)
+        info[:v_best] = sizehint!(Float64[], pomcp.solver.tree_queries)
+        info[:cv_best] = sizehint!(Vector{Float64}[], pomcp.solver.tree_queries)
+        info[:v_taken] = sizehint!(Float64[], pomcp.solver.tree_queries)
+        info[:cv_taken] = sizehint!(Vector{Float64}[], pomcp.solver.tree_queries)
+    end
+
     while i < pomcp.solver.tree_queries
         i += 1
         s = rand(pomcp.solver.rng, tree.root_belief)
@@ -65,6 +73,25 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
         ha = rand(pomcp.solver.rng, select_best(MaxCUCB(0.,0.),CPOWTreeObsNode(tree,1),pomcp._lambda))
         pomcp._lambda += alpha(pomcp.solver.alpha_schedule,i) .*  (tree.cv[ha] - pomcp.budget)
         pomcp._lambda = min.(max.(pomcp._lambda, 0.), max_clip)
+        
+        # tracking
+        if pomcp.solver.search_progress_info
+            push!(info[:lambda], pomcp._lambda)
+            push!(info[:v_taken], tree.v[ha])
+            push!(info[:cv_taken], tree.cv[ha])
+
+            # get absolute best node (no lambda weights)
+            max_q = -Inf
+            ha_best = nothing
+            for nd in tree.tried[1]
+                if tree.v[nd] > max_q
+                    max_q = tree.v[nd]
+                    ha_best = nd
+                end
+            end
+            push!(info[:v_best],tree.v[ha_best] )
+            push!(info[:cv_best],tree.cv[ha_best] )
+        end
 
         if timer() - t0 >= pomcp.solver.max_time
             break

@@ -31,7 +31,31 @@ function CLightDark1D(;pomdp::P=LightDark1D(0.95, 100., -100., 1., 1., (x)->abs(
     return CLightDark1D{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,cost_budget)
 end
 
-#function Qest(::, s, args...)
+# rough
+function QMDP_V(p::LightDark1D, s::LightDark1DState, args...) 
+    y = abs(s.y)
+    steps = floor(Int, y/10)
+    steps += floor(Int, y-10*steps)
+    γ = discount(p)
+    return -sum([(γ^i)*p.movement_cost  for i in 0:steps-1]) + (γ^steps)*p.correct_r 
+end
+
+function QMDP_V(p::CLightDark1D, s::LightDark1DState, args...)
+    V = QMDP_V(p.pomdp,s,args...)
+    y = abs(s.y)
+    C = 0
+    γ = 1
+    while y > 1
+        C+= γ*y
+        if y > 10
+            y -= 10
+        else
+            y -= 1
+        end
+        γ *= discount(p)
+    end
+    return (V, [C])
+end
 
 costs(::CLightDark1D, s::LightDark1DState, a::Int) = [abs(s.y)]
 costs_limit(p::CLightDark1D) = [p.cost_budget]

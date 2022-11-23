@@ -110,3 +110,10 @@ function plot_lightdark_beliefs(hist::Vector{NamedTuple},saveloc::Union{String,N
     end
 end
 
+zero_V(p::POMDP, args...) = 0.
+zero_V(p::CPOMDP, args...) = (0.0, zeros(Float64, n_costs(p)))
+QMDP_V(args...) = zero_V(args...) #default
+function QMDP_V(p::SoftConstraintPOMDPWrapper, args...) 
+    V, C = QMDP_V(p.cpomdp, args...)
+    return V - λ⋅C
+end

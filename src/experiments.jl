@@ -70,6 +70,7 @@ function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, ma
 
         push!(hist, (;s, a, o, r, c, rc, sp, b, 
             tree = :tree in keys(ai) ? ai[:tree] : nothing,
+            lambda = :lambda in keys(ai) ? ai[:lambda] : nothing,
             v_best = :v_best in keys(ai) ? ai[:v_best] : nothing,
             cv_best = :cv_best in keys(ai) ? ai[:cv_best] : nothing,
             v_taken = :v_taken in keys(ai) ? ai[:v_taken] : nothing,

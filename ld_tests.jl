@@ -7,9 +7,9 @@ using Plots
 using D3Trees
 using Random
 
-kwargs = (;tree_queries=10000, 
-        k_observation = 0.1,
-        alpha_action = 01/50)
+kwargs = Dict(:tree_queries=>10000, 
+        :k_observation => 0.1,
+        :alpha_action => 01/50)
 c = 250.0
 nu = 0.0
 λ_test = [1.]
@@ -45,10 +45,11 @@ inchrome(D3Tree(hist2[1][:tree]))
 
 # cpomcpow - fixed budget
 cpomdp = SoftConstraintPOMDPWrapper(CLightDark1D();λ=λ_test)
-solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
-    criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
-    estimate_value=0.0,
-    tree_in_info=true)
+solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
+    criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
+    estimate_value=(args...)->(0.0, [0.0]),
+    tree_in_info=true,
+    search_progress_info=true)
 hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver)
 R3
 C3[1]
@@ -57,15 +58,46 @@ plot_lightdark_beliefs(hist3,"belief_constrained.png")
 
 inchrome(D3Tree(hist3[1][:tree]))
 
-# check for working lambda cutter
-solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
-    criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
-    estimate_value=0.0)
-hist4, _, _, _, _ = run_cpomdp_simulation(CLightDark1D(), solver)
-best_qs = hist4[1][:info][:best_qs]
-best_cs = [c[0] for c in hist4[1][:info][:best_q_cs]]
-chosen_qs = hist4[1][:info][:chosen_q]
-chosen_cs = [c[0] for c in hist4[1][:info][:chosen_cs]]
+# check for working lambda ascent
+kwargs[:tree_queries]=100000
+cpomdp = SoftConstraintPOMDPWrapper(CLightDark1D(cost_budget=20.);λ=λ_test)
+solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
+    criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
+    estimate_value=zero_V,
+    tree_in_info=true,
+    search_progress_info=true)
+hist4, _, _, _ = run_cpomdp_simulation(cpomdp, solver)
+v_best4 = hist4[1][:v_best]
+cv_best4 = [c[1] for c in hist4[1][:cv_best]]
+v_taken4 = hist4[1][:v_best]
+cv_taken4 = [c[1] for c in hist4[1][:cv_taken]]
+lambda4 = [c[1] for c in hist4[1][:lambda]]
+
+plot(v_best4)
+plot(cv_best4)
+plot(v_taken4)
+plot(cv_taken4)
+plot(lambda4)
+
+cpomdp2 = SoftConstraintPOMDPWrapper(CLightDark1D(cost_budget=200.);λ=λ_test)
+solver2 = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
+    criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
+    estimate_value=QMDP_V,
+    tree_in_info=true,
+    search_progress_info=true)
+hist5, _, _, _ = run_cpomdp_simulation(cpomdp2, solver2)
+v_best5 = hist5[1][:v_best]
+cv_best5 = [c[1] for c in hist5[1][:cv_best]]
+v_taken5 = hist5[1][:v_best]
+cv_taken5 = [c[1] for c in hist5[1][:cv_taken]]
+lambda5 = [c[1] for c in hist5[1][:lambda]]
+
+plot(v_best5)
+plot(cv_best5)
+plot(v_taken5)
+plot(cv_taken5)
+plot(lambda5)
+
 
 ######## multiple trials ######
 

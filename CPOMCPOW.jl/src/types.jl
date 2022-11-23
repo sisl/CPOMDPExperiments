@@ -116,6 +116,7 @@ Fields:
     check_repeat_obs::Bool      = true
     check_repeat_act::Bool      = true
     tree_in_info::Bool          = false
+    search_progress_info::Bool  = false
 
     alpha_observation::Float64  = 0.5
     k_observation::Float64      = 10.0

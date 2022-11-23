@@ -53,7 +53,9 @@ export
     SoftConstraintPOMDPWrapper,
     ExperimentResults,
     mean,
-    std
+    std,
+    zero_V,
+    QMDP_V
 include("utils.jl") 
 
 # experiment scripts

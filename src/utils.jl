@@ -34,47 +34,53 @@ end
 
 ### Reward wrapper
 
-struct SoftConstraintPOMDPWrapper{P,S,A,O} <: POMDP{S,A,O} where {P<:POMDP}
-    cpomdp::ConstrainPOMDPWrapper{P,S,A,O}
+"""
+A POMDP wrapper that acts according to the underlying POMDP but augments rewards from the underlying CPOMDP
+"""
+struct SoftConstraintPOMDPWrapper{P,C,S,A,O} <: POMDP{S,A,O} where {P<:POMDP{S,A,O}, C<:CPOMDP{S,A,O}}
+    pomdp::P
+    cpomdp::C
     λ::Vector{Float64}
 end
+
 function SoftConstraintPOMDPWrapper(c::ConstrainPOMDPWrapper; 
     λ::Union{Nothing,Vector{Float64}}=nothing)
 
-    if λ == nothing
+    if λ === nothing
         λ = zeros(Float64, n_costs(c))
     else
         @assert length(λ) == n_costs(c) "Length of λ should match length of CPOMDP"
     end
     P = typeof(c.pomdp)
+    C = typeof(c)
     S = statetype(c.pomdp)
     A = actiontype(c.pomdp)
     O = obstype(c.pomdp)
-    return SoftConstraintPOMDPWrapper{P,S,A,O}(c,λ)
+    return SoftConstraintPOMDPWrapper{P,C,S,A,O}(c.pomdp,c,λ)
 end
 
-POMDPs.reward(p::SoftConstraintPOMDPWrapper, args...) = POMDPs.reward(p.cpomdp, args...) - p.λ⋅CPOMDP.costs(p.cpomdp, args...)
-POMDPs.discount(m::SoftConstraintPOMDPWrapper) = POMDPs.discount(m.cpomdp)
-POMDPs.transition(m::SoftConstraintPOMDPWrapper, state, action) = POMDPs.transition(m.cpomdp, state, action)
-POMDPs.observation(m::SoftConstraintPOMDPWrapper, args...) = POMDPs.observation(m.cpomdp, args...)
-POMDPs.isterminal(m::SoftConstraintPOMDPWrapper, s) = POMDPs.isterminal(m.cpomdp, s)
-POMDPs.initialstate(m::SoftConstraintPOMDPWrapper) = POMDPs.initialstate(m.cpomdp)
-POMDPs.initialobs(m::SoftConstraintPOMDPWrapper, s) = POMDPs.initialobs(m.cpomdp, s)
-POMDPs.stateindex(problem::SoftConstraintPOMDPWrapper, s) = POMDPs.stateindex(problem.cpomdp, s)
-POMDPs.actionindex(problem::SoftConstraintPOMDPWrapper, a) = POMDPs.actionindex(problem.cpomdp, a)
-POMDPs.obsindex(problem::SoftConstraintPOMDPWrapper, o) = POMDPs.obsindex(problem.cpomdp, o)
-POMDPs.convert_s(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_s(a, b, problem.cpomdp)
-POMDPs.convert_a(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_a(a, b, problem.cpomdp)
-POMDPs.convert_o(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_o(a, b, problem.cpomdp) 
-POMDPs.states(problem::SoftConstraintPOMDPWrapper) = POMDPs.states(problem.cpomdp)
-POMDPs.actions(m::SoftConstraintPOMDPWrapper) = POMDPs.actions(m.cpomdp)
-POMDPs.actions(m::SoftConstraintPOMDPWrapper, s) = POMDPs.actions(m.cpomdp, s)
-POMDPs.observations(problem::SoftConstraintPOMDPWrapper) = POMDPs.observations(problem.cpomdp)
-POMDPs.observations(problem::SoftConstraintPOMDPWrapper, s) = POMDPs.observations(problem.cpomdp, s) 
-POMDPs.statetype(p::SoftConstraintPOMDPWrapper) = POMDPs.statetype(p.cpomdp)
-POMDPs.actiontype(p::SoftConstraintPOMDPWrapper) = POMDPs.actiontype(p.cpomdp)
-POMDPs.obstype(p::SoftConstraintPOMDPWrapper) = POMDPs.obstype(p.cpomdp)
-POMDPs.gen(m::SoftConstraintPOMDPWrapper, s, a, rng::AbstractRNG) = POMDPs.gen(m.cpomdp, s, a, rng)
+POMDPs.reward(p::SoftConstraintPOMDPWrapper, args...) = POMDPs.reward(p.pomdp, args...) - p.λ⋅CPOMDPs.costs(p.cpomdp, args...)
+POMDPs.discount(m::SoftConstraintPOMDPWrapper) = POMDPs.discount(m.pomdp)
+POMDPs.transition(m::SoftConstraintPOMDPWrapper, state, action) = POMDPs.transition(m.pomdp, state, action)
+POMDPs.observation(m::SoftConstraintPOMDPWrapper, args...) = POMDPs.observation(m.pomdp, args...)
+POMDPs.isterminal(m::SoftConstraintPOMDPWrapper, s) = POMDPs.isterminal(m.pomdp, s)
+POMDPs.initialstate(m::SoftConstraintPOMDPWrapper) = POMDPs.initialstate(m.pomdp)
+POMDPs.initialobs(m::SoftConstraintPOMDPWrapper, s) = POMDPs.initialobs(m.pomdp, s)
+POMDPs.stateindex(problem::SoftConstraintPOMDPWrapper, s) = POMDPs.stateindex(problem.pomdp, s)
+POMDPs.actionindex(problem::SoftConstraintPOMDPWrapper, a) = POMDPs.actionindex(problem.pomdp, a)
+POMDPs.obsindex(problem::SoftConstraintPOMDPWrapper, o) = POMDPs.obsindex(problem.pomdp, o)
+POMDPs.convert_s(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_s(a, b, problem.pomdp)
+POMDPs.convert_a(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_a(a, b, problem.pomdp)
+POMDPs.convert_o(a, b, problem::SoftConstraintPOMDPWrapper) = POMDPs.convert_o(a, b, problem.pomdp) 
+POMDPs.states(problem::SoftConstraintPOMDPWrapper) = POMDPs.states(problem.pomdp)
+POMDPs.actions(m::SoftConstraintPOMDPWrapper) = POMDPs.actions(m.pomdp)
+POMDPs.actions(m::SoftConstraintPOMDPWrapper, s) = POMDPs.actions(m.pomdp, s)
+POMDPs.observations(problem::SoftConstraintPOMDPWrapper) = POMDPs.observations(problem.pomdp)
+POMDPs.observations(problem::SoftConstraintPOMDPWrapper, s) = POMDPs.observations(problem.pomdp, s) 
+POMDPs.statetype(p::SoftConstraintPOMDPWrapper) = POMDPs.statetype(p.pomdp)
+POMDPs.actiontype(p::SoftConstraintPOMDPWrapper) = POMDPs.actiontype(p.pomdp)
+POMDPs.obstype(p::SoftConstraintPOMDPWrapper) = POMDPs.obstype(p.pomdp)
+POMDPs.gen(m::SoftConstraintPOMDPWrapper, s, a, rng::AbstractRNG) = POMDPs.gen(m.pomdp, s, a, rng)
 
 ### Other utils 
 

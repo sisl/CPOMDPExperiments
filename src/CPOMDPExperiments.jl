@@ -29,37 +29,38 @@ using CPOMCPOW
 
 # models 
 using POMDPModels
+export CLightDark1D
 include("cpomdps/clightdark.jl")
 
 using RockSample
+export RockSampleCPOMDP
 include("cpomdps/crocksample.jl")
 
 using VDPTag2
+export CVDPTagPOMDP
 include("cpomdps/cvdp.jl")
 
 using SpillpointPOMDP
+export SpillpointInjectionCPOMDP
 include("cpomdps/cspillpoint.jl")
 
 #using RoombaPOMDPs
 
-# constrained models 
 
-# testing configurations
-export
-    run_pomdp_simulation,
-    run_cpomdp_simulation,
-    CLightDark1D,
-    RockSampleCPOMDP,
-    CVDPTagPOMDP,
-    SpillpointInjectionCPOMDP
-include("experiments.jl")
-
+# helpers
 export
     plot_lightdark_beliefs,
     SoftConstraintPOMDPWrapper,
     ExperimentResults,
     mean,
     std
-include("utils.jl")
+include("utils.jl") 
+
+# experiment scripts
+export
+    run_pomdp_simulation,
+    run_cpomdp_simulation
+include("experiments.jl")
+
 
 end # module

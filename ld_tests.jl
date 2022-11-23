@@ -14,25 +14,28 @@ c = 250.0
 nu = 0.0
 λ_test = [1.]
 
+
 # basic pomcpow - lambda 0
+pomdp = SoftConstraintPOMDPWrapper(CLightDark1D())
 solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
     estimate_value=0.0,
     tree_in_info=true)
-hist1, R1, C1, RC1 = run_pomdp_simulation(CLightDark1D(), solver)
+hist1, R1, C1, RC1 = run_pomdp_simulation(pomdp, solver)
 R1
 C1[1]
 RC1
 plot_lightdark_beliefs(hist1,"belief_l0.png")
 inchrome(D3Tree(hist1[1][:tree]))
 inchrome(D3Tree(hist1[5][:tree]))
-# augmented pomcpow - lambda given
 
+# augmented pomcpow - lambda given
+pomdp = SoftConstraintPOMDPWrapper(CLightDark1D();λ=λ_test)
 solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
     estimate_value=0.0,
     tree_in_info=true)
-hist2, R2, C2, RC2 = run_pomdp_simulation(CLightDark1D(lambda=λ_test), solver)
+hist2, R2, C2, RC2 = run_pomdp_simulation(pomdp, solver)
 R2
 C2[1]
 RC2
@@ -41,12 +44,12 @@ plot_lightdark_beliefs(hist2,"belief_lgiven.png")
 inchrome(D3Tree(hist2[1][:tree]))
 
 # cpomcpow - fixed budget
-
+cpomdp = SoftConstraintPOMDPWrapper(CLightDark1D();λ=λ_test)
 solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
     estimate_value=0.0,
     tree_in_info=true)
-hist3, R3, C3, RC3 = run_cpomdp_simulation(CLightDark1D(), solver)
+hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver)
 R3
 C3[1]
 RC3
@@ -69,15 +72,16 @@ chosen_cs = [c[0] for c in hist4[1][:info][:chosen_cs]]
 nsims = 10
 er_pomdp = ExperimentResults(nsims)
 er_cpomdp = ExperimentResults(nsims)
+pomdp = SoftConstraintPOMDPWrapper(CLightDark1D(cost_budget=20.);λ=λ_test)
 for i=1:nsims
     println("i=$i")
-    er_pomdp[i] = run_pomdp_simulation(CLightDark1D(), 
+    er_pomdp[i] = run_pomdp_simulation(pomdp, 
         CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
             criterion=CPOMDPExperiments.POMCPOW.MaxUCB(c), 
             estimate_value=0.0,
             rng=MersenneTwister(i)))
     
-    er_cpomdp[i] = run_cpomdp_simulation(CLightDark1D(bad_action_budget=20.0), 
+    er_cpomdp[i] = run_cpomdp_simulation(pomdp, 
         CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
             criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
             estimate_value=(args...)->(0.0, [0.0]),

@@ -49,17 +49,18 @@ function get_tree(planner)
     end
 end
 
-function run_cpomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_steps=100)
-    planner = solve(solver, p)
+function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, max_steps=100)
+    planner = solve(solver, p.cpomdp)
     R = 0
-    C = zeros(n_costs(p))
+    C = zeros(n_costs(p.cpomdp))
     RC = 0
     γ = 1
     hist = NamedTuple[]
-    for (s, a, o, r, c,sp, b, ai) in stepthrough(p, planner, "s,a,o,r,c,sp,b,action_info", max_steps=max_steps)
+    
+    for (s, a, o, r, c, sp, b, ai) in stepthrough(p.cpomdp, planner, "s,a,o,r,c,sp,b,action_info", max_steps=max_steps)
         
-        rc = r # the given reward already includes a -λc term. 
-        r = POMDPs.reward(p.pomdp,s,a,sp)
+        # track fictitions augmented reward
+        rc = r - p.λ⋅c
         
         R += r*γ
         C .+= c.*γ
@@ -68,23 +69,32 @@ function run_cpomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_ste
         γ *= discount(p)
 
         push!(hist, (;s, a, o, r, c, rc, sp, b, 
-            tree = :tree in keys(ai) ? ai[:tree] : nothing))
+            tree = :tree in keys(ai) ? ai[:tree] : nothing,
+            v_best = :v_best in keys(ai) ? ai[:v_best] : nothing,
+            cv_best = :cv_best in keys(ai) ? ai[:cv_best] : nothing,
+            v_taken = :v_taken in keys(ai) ? ai[:v_taken] : nothing,
+            cv_taken = :cv_taken in keys(ai) ? ai[:cv_taken] : nothing,
+            ))
     end
     hist, R, C, RC
 end
 
-function run_pomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_steps=100)
-    planner = solve(solver, p.pomdp)
+function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, max_steps=100)
+    planner = solve(solver, p)
+    
     R = 0
-    C = zeros(n_costs(p))
+    C = zeros(n_costs(p.cpomdp))
     RC = 0
     γ = 1
     hist = NamedTuple[]
-    for (s, a, o, r,sp,b,ai) in stepthrough(p.pomdp, planner, "s,a,o,r,sp,b,action_info", max_steps=max_steps)
-        # check the cost that the cpomdp would  receive and . 
-        c = costs(p,s,a,sp)
-        rc = (r-p.λ⋅c)
+    
+    for (s, a, o, r, sp, b, ai) in stepthrough(p, planner, "s,a,o,r,sp,b,action_info", max_steps=max_steps)
         
+        # the tracked reward is actually augmented reward, backtrack true reward and costs 
+        rc = r
+        r = reward(p.pomdp,s,a,sp)
+        c = costs(p.cpomdp,s,a,sp)
+
         R += r*γ
         C .+= c.*γ
         RC += rc*γ 

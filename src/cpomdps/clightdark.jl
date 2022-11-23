@@ -16,29 +16,25 @@ function POMDPs.reward(p::LightDark1D, s::LightDark1DState, a::Int)
     end
 end
 
-# compare CLightDark1D with fixed bad_action_budget and 0 p.problem.incorrect_r with 
+# compare CLightDark1D with fixed cost_budget and 0 p.problem.incorrect_r with 
 # LightDark1D with variable p.incorrect_r
 
 struct CLightDark1D{P<:LightDark1D,S,A,O} <: ConstrainPOMDPWrapper{P,S,A,O}
     pomdp::P 
-    bad_action_budget::Float64
-    λ::Vector{Float64}
+    cost_budget::Float64
 end
 
 #function CLightDark1D(;pomdp::P=LightDark1D(0.95, 100., -100., 1., -0., (x)->abs(x - 10)/sqrt(2) + 1e-2 ), # default 0 incorrect_r, goes into cost
 function CLightDark1D(;pomdp::P=LightDark1D(0.95, 100., -100., 1., 1., (x)->abs(x - 10) + 1e-2 ), # default 0 incorrect_r, goes into cost
-    bad_action_budget::Float64=10.,
-    lambda::Vector{Float64}=Float64[0.]
+    cost_budget::Float64=30.,
     ) where {P<:LightDark1D}
-    return CLightDark1D{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,bad_action_budget, lambda)
+    return CLightDark1D{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,cost_budget)
 end
 
-
-POMDPs.reward(p::CLightDark1D, s::LightDark1DState, a::Int) = POMDPs.reward(p.pomdp, s, a) + p.λ⋅costs(p, s, a)
-
+#function Qest(::, s, args...)
 
 costs(::CLightDark1D, s::LightDark1DState, a::Int) = [abs(s.y)]
-costs_limit(p::CLightDark1D) = [p.bad_action_budget]
+costs_limit(p::CLightDark1D) = [p.cost_budget]
 n_costs(::CLightDark1D) = 1
 max_reward(p::CLightDark1D) = p.pomdp.correct_r
 min_reward(p::CLightDark1D) = -p.pomdp.movement_cost
@@ -49,20 +45,18 @@ min_reward(p::CLightDark1D) = -p.pomdp.movement_cost
 
 struct CLightDarkNew{P<:LightDark1D,S,A,O} <: ConstrainPOMDPWrapper{P,S,A,O}
     pomdp::P 
-    bad_action_budget::Float64
-    λ::Vector{Float64}
+    cost_budget::Float64
 end
 
 function CLightDarkNew(;pomdp::P=LightDark1D(0.95, 100., -100., 1., -0., (x)->abs(x - 10) + 1e-2 ), # default 0 incorrect_r, goes into cost
-    bad_action_budget::Float64=0.5,
+    cost_budget::Float64=0.5,
     lambda::Vector{Float64}=Float64[0.]
     ) where {P<:LightDark1D}
-    return CLightDarkNew{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,bad_action_budget, lambda)
+    return CLightDarkNew{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,cost_budget)
 end
 
-POMDPs.reward(p::CLightDarkNew, s::LightDark1DState, a::Int) = POMDPs.reward(p.pomdp, s, a) + p.λ⋅costs(p, s, a)
 costs(::CLightDarkNew, s::LightDark1DState, a::Int) = Float64[s.y > 12]
-costs_limit(p::CLightDarkNew) = [p.bad_action_budget]
+costs_limit(p::CLightDarkNew) = [p.cost_budget]
 n_costs(::CLightDarkNew) = 1
 max_reward(p::CLightDarkNew) = p.pomdp.correct_r
 min_reward(p::CLightDarkNew) = -p.pomdp.movement_cost

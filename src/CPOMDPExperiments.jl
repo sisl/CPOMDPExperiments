@@ -8,6 +8,9 @@ using POMDPGifs
 using Cairo
 using ParticleFilters
 using LinearAlgebra
+using Plots
+import Statistics
+using Random
 
 using POMDPs
 using POMDPTools
@@ -50,5 +53,13 @@ export
     CVDPTagPOMDP,
     SpillpointInjectionCPOMDP
 include("experiments.jl")
+
+export
+    plot_lightdark_beliefs,
+    SoftConstraintPOMDPWrapper,
+    ExperimentResults,
+    mean,
+    std
+include("utils.jl")
 
 end # module

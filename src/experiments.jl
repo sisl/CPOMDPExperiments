@@ -55,17 +55,22 @@ function run_cpomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_ste
     C = zeros(n_costs(p))
     RC = 0
     γ = 1
-    tree_hist = Any[deepcopy(get_tree(planner))]
-    #@infiltrate
-    for (s, a, o, r, c,sp) in stepthrough(p, planner, "s,a,o,r,c,sp", max_steps=max_steps)
-        R += POMDPs.reward(p.pomdp,s,a,sp) * γ
+    hist = NamedTuple[]
+    for (s, a, o, r, c,sp, b, ai) in stepthrough(p, planner, "s,a,o,r,c,sp,b,action_info", max_steps=max_steps)
+        
+        rc = r # the given reward already includes a -λc term. 
+        r = POMDPs.reward(p.pomdp,s,a,sp)
+        
+        R += r*γ
         C .+= c.*γ
-        RC += γ*r # the reward already includes a -λc term. 
+        RC += rc*γ 
 
         γ *= discount(p)
-        push!(tree_hist, deepcopy(get_tree(planner)))
+
+        push!(hist, (;s, a, o, r, c, rc, sp, b, 
+            tree = :tree in keys(ai) ? ai[:tree] : nothing))
     end
-    tree_hist, R, C, RC
+    hist, R, C, RC
 end
 
 function run_pomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_steps=100)
@@ -74,17 +79,20 @@ function run_pomdp_simulation(p::ConstrainPOMDPWrapper, solver::Solver, max_step
     C = zeros(n_costs(p))
     RC = 0
     γ = 1
-    hist = []
-    #@infiltrate
-    for (s, a, o, r,sp,b) in stepthrough(p.pomdp, planner, "s,a,o,r,sp,b", max_steps=max_steps)
+    hist = NamedTuple[]
+    for (s, a, o, r,sp,b,ai) in stepthrough(p.pomdp, planner, "s,a,o,r,sp,b,action_info", max_steps=max_steps)
+        # check the cost that the cpomdp would  receive and . 
         c = costs(p,s,a,sp)
-        R += r * γ
+        rc = (r-p.λ⋅c)
+        
+        R += r*γ
         C .+= c.*γ
-        RC += γ*(r-p.λ⋅c) # the reward already includes a -λc term. 
+        RC += rc*γ 
 
         γ *= discount(p)
 
-        push!(hist, (;s, a, o, r, sp, b, tree=deepcopy(get_tree(planner))))
+        push!(hist, (;s, a, o, r, c, rc, sp, b, 
+            tree = :tree in keys(ai) ? ai[:tree] : nothing))
     end
     hist, R, C, RC
 end

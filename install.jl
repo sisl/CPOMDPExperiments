@@ -41,6 +41,8 @@ Pkg.develop(packages)
 # end
 
 Pkg.add("D3Trees")
+Pkg.add("Plots")
+Pkg.add("LinearAlgebra")
 #Pkg.add("BSON")
 Pkg.add("Distributions")
 Pkg.add("Infiltrator")

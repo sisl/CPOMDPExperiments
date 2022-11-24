@@ -107,3 +107,43 @@ function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, max
     end
     hist, R, C, RC
 end
+
+
+function run_lambda_experiments(lambdas::Vector{Float64},
+    p::ConstrainPOMDPWrapper, 
+    psolver, psolver_kwargs, csolver, csolver_kwargs;
+    nsims::Int=10)
+    
+    le = LambdaExperiments(lambdas;nsims=nsims)
+
+    for (i,λ) in enumerate(lambdas)
+        
+        problem = SoftConstraintPOMDPWrapper(p,λ=[λ])
+
+        # run on CPOMDP on i=1
+        if i == 1
+            cp_exp = ExperimentResults(nsims)
+            for j in 1:nsims
+                cpomdp_solver = csolver(;csolver_kwargs...,rng=MersenneTwister(j))
+                cp_exp[j] = run_cpomdp_simulation(problem,cpomdp_solver)
+            end
+            R_m, C_m, RC_m = mean(cp_exp)
+            R_std, C_std, RC_std = std(cp_exp)
+            le.R_CPOMDP = Dist(R_m,R_std)
+            le.C_CPOMDP = Dist(C_m[1],C_std[1])
+        end
+
+        # run POMDP
+        p_exp = ExperimentResults(nsims)
+        for j in 1:nsims
+            pomdp_solver = psolver(;psolver_kwargs...,rng=MersenneTwister(j))
+            p_exp[j] = run_pomdp_simulation(problem,pomdp_solver)
+        end
+        R_m, C_m, RC_m = mean(p_exp)
+        R_std, C_std, RC_std = std(p_exp)
+        le.Rs[i] = Dist(R_m,R_std)
+        le.Cs[i] = Dist(C_m[1],C_std[1])
+        le.RCs[i] = Dist(RC_m,RC_std)
+    end
+    return le
+end

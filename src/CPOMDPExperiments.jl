@@ -31,6 +31,8 @@ using CPOMCPOW
 using POMDPModels
 export CLightDark1D
 include("cpomdps/clightdark.jl")
+export LightDarkNew, CLightDarkNew
+include("cpomdps/clightdarknew.jl")
 
 using RockSample
 export RockSampleCPOMDP
@@ -55,13 +57,16 @@ export
     mean,
     std,
     zero_V,
-    QMDP_V
+    QMDP_V,
+    LambdaExperiments,
+    plot_lambdas
 include("utils.jl") 
 
 # experiment scripts
 export
     run_pomdp_simulation,
-    run_cpomdp_simulation
+    run_cpomdp_simulation,
+    run_lambda_experiments
 include("experiments.jl")
 
 

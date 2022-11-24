@@ -1,0 +1,90 @@
+### Light Dark New
+## Same as lightdark, but with a different action space, and constraints on going above 12
+
+import Base: ==, +, *, -
+using Distributions
+
+mutable struct LightDarkNew{F<:Function} <: POMDPs.POMDP{LightDark1DState,Int,Float64}
+    discount_factor::Float64
+    correct_r::Float64
+    incorrect_r::Float64
+    step_size::Float64
+    movement_cost::Float64
+    sigma::F
+end
+
+default_sigma(x::Float64) = abs(x - 10) + 1e-2
+
+LightDarkNew() = LightDarkNew(0.95, 100.0, -100.0, 1.0, 1.0, default_sigma)
+POMDPs.discount(p::LightDarkNew) = p.discount_factor
+POMDPs.isterminal(::LightDarkNew, act::Int64) = act == 0
+POMDPs.isterminal(::LightDarkNew, s::LightDark1DState) = s.status < 0
+POMDPs.actions(::LightDarkNew) = [-10, -5, -1, 0, 1, 5, 10]
+POMDPs.initialstate(::LightDarkNew) = POMDPModels.LDNormalStateDist(2, 3)
+POMDPs.initialobs(m::LightDarkNew, s) = POMDPs.observation(m, s)
+POMDPs.observation(p::LightDarkNew, sp::LightDark1DState) = Normal(sp.y, p.sigma(sp.y))
+
+function POMDPs.transition(p::LightDarkNew, s::LightDark1DState, a::Int)
+    if a == 0
+        return Deterministic(LightDark1DState(-1, s.y+a*p.step_size))
+    else
+        return Deterministic(LightDark1DState(s.status, s.y+a*p.step_size))
+    end
+end
+
+function POMDPs.reward(p::LightDarkNew, s::LightDark1DState, a::Int)
+    if s.status < 0
+        return 0.0
+    elseif a == 0
+        if abs(s.y) < 1
+            return p.correct_r
+        else
+            return p.incorrect_r
+        end
+    else
+        return -p.movement_cost
+    end
+end
+
+POMDPs.convert_s(::Type{A}, s::LightDark1DState, p::LightDarkNew) where A<:AbstractArray = eltype(A)[s.status, s.y]
+POMDPs.convert_s(::Type{LightDark1DState}, s::A, p::LightDarkNew) where A<:AbstractArray = LightDark1DState(Int64(s[1]), s[2])
+
+
+
+## CPOMDP
+
+struct CLightDarkNew{P<:LightDarkNew,S,A,O} <: ConstrainPOMDPWrapper{P,S,A,O}
+    pomdp::P 
+    cost_budget::Float64
+    max_y::Float64
+end
+
+function CLightDarkNew(;pomdp::P=LightDarkNew(),
+    cost_budget::Float64=0.5,
+    max_y::Float64=12.,
+    ) where {P<:LightDarkNew}
+    return CLightDarkNew{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,cost_budget,max_y)
+end
+
+costs(::CLightDarkNew, s::LightDark1DState, a::Int) = Float64[s.y >= max_y]
+costs_limit(p::CLightDarkNew) = [p.cost_budget]
+n_costs(::CLightDarkNew) = 1
+max_reward(p::CLightDarkNew) = p.pomdp.correct_r
+min_reward(p::CLightDarkNew) = -p.pomdp.movement_cost
+
+function QMDP_V(p::LightDark1D, s::LightDark1DState, args...) 
+    y = abs(s.y)
+    steps = floor(Int, y/10)
+    steps += floor(Int, y-10*steps)
+    γ = discount(p)
+    return -sum([(γ^i)*p.movement_cost  for i in 0:steps-1]) + (γ^steps)*p.correct_r 
+end
+
+function QMDP_V(p::CLightDark1D, s::LightDark1DState, args...)
+    V = QMDP_V(p.pomdp,s,args...)
+    y = abs(s.y)
+    γ = discount(p)
+    steps = floor(Int, (s.y+10-p.max_y)/10)
+    C = sum([γ^i for i in 0:steps-1])
+    return (V, [C])
+end

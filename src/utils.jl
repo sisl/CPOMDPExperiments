@@ -32,6 +32,7 @@ function std(er::ExperimentResults;corrected::Bool=false)
     return stdR, stdC, stdRC
 end
 
+
 ### Reward wrapper
 
 """
@@ -82,6 +83,34 @@ POMDPs.actiontype(p::SoftConstraintPOMDPWrapper) = POMDPs.actiontype(p.pomdp)
 POMDPs.obstype(p::SoftConstraintPOMDPWrapper) = POMDPs.obstype(p.pomdp)
 POMDPs.gen(m::SoftConstraintPOMDPWrapper, s, a, rng::AbstractRNG) = POMDPs.gen(m.pomdp, s, a, rng)
 
+### Lambda Experiment Structures
+
+struct Dist
+    mean::Float64
+    std::Float64
+end
+
+mutable struct LambdaExperiments
+    λs::Vector{Float64}
+    nsims::Int # per lambda
+    Rs::Vector{Dist}
+    Cs::Vector{Dist}
+    RCs::Vector{Dist}
+    
+    R_CPOMDP::Union{Dist,Nothing}
+    C_CPOMDP::Union{Dist,Nothing}
+end
+
+LambdaExperiments(lambdas::Vector{Float64};nsims::Int=10) = LambdaExperiments(
+    lambdas,
+    nsims,
+    Array{Dist}(undef, length(lambdas)),
+    Array{Dist}(undef, length(lambdas)),
+    Array{Dist}(undef, length(lambdas)),
+    nothing, nothing
+)
+    
+
 ### Other utils 
 
 function plot_lightdark_beliefs(hist::Vector{NamedTuple},saveloc::Union{String,Nothing}=nothing )
@@ -106,6 +135,23 @@ function plot_lightdark_beliefs(hist::Vector{NamedTuple},saveloc::Union{String,N
     scatter(xpts, ypts)
     scatter!(1:length(states), states)
     if !(saveloc == nothing)
+        savefig(saveloc)
+    end
+end
+
+function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=nothing,
+    saveloc::Union{String,Nothing}=nothing)
+
+    plot([i.mean for i in le.Cs], [i.mean for i in le.Rs], label="POMDP Pareto Frontier")
+    scatter!([le.C_CPOMDP.mean],[le.R_CPOMDP.mean],label="CPOMDP Solution")
+    
+    xlabel!("V_C")
+    ylabel!("V_R")
+
+    if !(target_cost===nothing)
+        vline!([target_cost],label="target_cost")
+    end
+    if !(saveloc===nothing)
         savefig(saveloc)
     end
 end

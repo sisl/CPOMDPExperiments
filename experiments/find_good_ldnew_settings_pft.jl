@@ -1,15 +1,15 @@
 using Revise
-Pkg.resolve()
 using CPOMDPExperiments
 using D3Trees
 using Plots 
 
 ### Find Good Settings
-kwargs = Dict(:tree_queries=>5e5, 
+kwargs = Dict(:tree_queries=>1e6, 
         :k_observation => 0.1,
-        :alpha_action => 01/100,
+        :alpha_observation => 0.5,
+        :enable_action_pw=>false,
         :max_depth => 10,
-        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(1e-2))
+        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(1e-1))
 c = 250.0 # 250
 nu = 0.0
 λ_test = [1.]
@@ -34,13 +34,13 @@ plot_lightdark_beliefs(hist3,"figs/belief_ldn_unconstrained.png")
 inchrome(D3Tree(hist3[1][:tree]))
 
 
-sp = SearchProgress(hist3[1])
+sp3 = SearchProgress(hist3[1])
 
-plot(sp.v_best)
-plot(sp.cv_best)
-plot(sp.v_taken)
-plot(sp.cv_taken)
-plot(sp.lambda)
+#plot(sp.v_best)
+#plot(sp.cv_best)
+#plot(sp.v_taken)
+#plot(sp.cv_taken)
+#plot(sp.lambda)
 
 
 ## constrained
@@ -64,12 +64,12 @@ plot_lightdark_beliefs(hist4,"figs/belief_ldn_constrained.png")
 inchrome(D3Tree(hist4[1][:tree]))
 
 
-sp = SearchProgress(hist4[1])
+sp4 = SearchProgress(hist4[1])
 
-plot(sp.v_best)
-plot(sp.cv_best)
-plot(sp.v_taken)
-plot(sp.cv_taken)
-plot(sp.lambda)
+#plot(sp.v_best)
+#plot(sp.cv_best)
+#plot(sp.v_taken)
+#plot(sp.cv_taken)
+#plot(sp.lambda)
 
 

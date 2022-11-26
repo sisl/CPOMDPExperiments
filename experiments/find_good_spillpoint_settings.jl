@@ -1,75 +1,83 @@
 using Revise
-Pkg.resolve()
 using CPOMDPExperiments
 using D3Trees
 using Plots 
 
 ### Find Good Settings
-kwargs = Dict(:tree_queries=>5e5, 
-        :k_observation => 0.1,
-        :alpha_action => 01/100,
-        :max_depth => 10,
+kwargs = Dict(:tree_queries=>5000,
+        :k_action => 30.,
+        :alpha_action => 1/30,
+        :k_observation => 10.,
+        :alpha_observation => 0.3,
+        #:max_depth => 30,
         :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(1e-2))
-c = 250.0 # 250
+
+
+
+c = 20.0 
 nu = 0.0
-λ_test = [1.]
+λ_test = [5.] # default meas_cost is 5., but set to 0. in CVDPTagPOMDP
+filter_size = Int(1e4)
 
+cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=100.);
+    λ=λ_test)
 
-cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=20.);λ=λ_test)
 solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
     estimate_value=zeroV_trueC,
     tree_in_info=true,
     search_progress_info=true)
+
 updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
-    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, Int(1e4), solver.rng), 
+    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, filter_size, solver.rng), 
     planner)
+
 hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver, updater)
 
 R3
 C3[1]
 RC3
-plot_lightdark_beliefs(hist3,"figs/belief_ldn_unconstrained.png")
+plot_lightdark_beliefs(hist3,"figs/belief_vdp_unconstrained.png")
 
 inchrome(D3Tree(hist3[1][:tree]))
 
 
-sp = SearchProgress(hist3[1])
+sp3 = SearchProgress(hist3[1])
 
-plot(sp.v_best)
-plot(sp.cv_best)
-plot(sp.v_taken)
-plot(sp.cv_taken)
-plot(sp.lambda)
+plot(sp3.v_best)
+plot(sp3.cv_best)
+plot(sp3.v_taken)
+plot(sp3.cv_taken)
+plot(sp3.lambda)
 
 
 ## constrained
 
-cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.5);λ=λ_test)
+cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=5.);
+    λ=λ_test)
 solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
     estimate_value=zeroV_trueC,
     tree_in_info=true,
     search_progress_info=true)
 updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
-    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, Int(1e4), solver.rng), 
+    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, filter_size, solver.rng), 
     planner)
 hist4, R4, C4, RC4 = run_cpomdp_simulation(cpomdp, solver, updater)
 
 R4
 C4[1]
 RC4
-plot_lightdark_beliefs(hist4,"figs/belief_ldn_constrained.png")
+plot_lightdark_beliefs(hist4,"figs/belief_vdp_constrained.png")
 
 inchrome(D3Tree(hist4[1][:tree]))
 
 
-sp = SearchProgress(hist4[1])
+sp4 = SearchProgress(hist4[1])
 
-plot(sp.v_best)
-plot(sp.cv_best)
-plot(sp.v_taken)
-plot(sp.cv_taken)
-plot(sp.lambda)
-
+plot(sp4.v_best)
+plot(sp4.cv_best)
+plot(sp4.v_taken)
+plot(sp4.cv_taken)
+plot(sp4.lambda)
 

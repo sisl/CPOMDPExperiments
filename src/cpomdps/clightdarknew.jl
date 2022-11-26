@@ -20,7 +20,7 @@ POMDPs.discount(p::LightDarkNew) = p.discount_factor
 POMDPs.isterminal(::LightDarkNew, act::Int64) = act == 0
 POMDPs.isterminal(::LightDarkNew, s::LightDark1DState) = s.status < 0
 POMDPs.actions(::LightDarkNew) = [-10, -5, -1, 0, 1, 5, 10]
-POMDPs.initialstate(::LightDarkNew) = POMDPModels.LDNormalStateDist(1, 3)
+POMDPs.initialstate(::LightDarkNew) = POMDPModels.LDNormalStateDist(2, 2)
 POMDPs.initialobs(m::LightDarkNew, s) = POMDPs.observation(m, s)
 POMDPs.observation(p::LightDarkNew, sp::LightDark1DState) = Normal(sp.y, p.sigma(sp.y))
 

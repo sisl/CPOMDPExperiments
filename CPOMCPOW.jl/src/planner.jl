@@ -222,6 +222,18 @@ function simulate(pomcp::CPOMCPOWPlanner, h_node::CPOWTreeObsNode{B,A,O}, s::S, 
             tree.top_level_costs[best_node] += (c-tree.top_level_costs[best_node])/tree.n[best_node]
         end
     end
+
+    if sol.return_best_cost
+        LC = dot(pomcp._lambda .+ 1e-3, C)
+        for ch in tree.tried[h]
+            LC_temp = dot(pomcp._lambda .+ 1e-3, tree.cv[ch])
+            if LC_temp < LC
+                LC = LC_temp
+                C = tree.cv[ch]
+            end
+        end
+    end
+
     return R, C
 end
 

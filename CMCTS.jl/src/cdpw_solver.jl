@@ -72,6 +72,13 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
     # p._lambda = rand(p.rng, n_costs(p.mdp)) .* max_clip # random initialization
     p._lambda = zeros(Float64, n_costs(p.mdp))
 
+    if p.solver.search_progress_info
+        info[:lambda] = sizehint!(Vector{Float64}[p._lambda], p.solver.n_iterations)
+        info[:v_best] = sizehint!(Float64[], p.solver.n_iterations)
+        info[:cv_best] = sizehint!(Vector{Float64}[], p.solver.n_iterations)
+        info[:v_taken] = sizehint!(Float64[], p.solver.n_iterations)
+        info[:cv_taken] = sizehint!(Vector{Float64}[], p.solver.n_iterations)
+    end
     
     for i = 1:p.solver.n_iterations
         nquery += 1
@@ -87,6 +94,24 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
         p._lambda += alpha(p.solver.alpha_schedule,i) .* (p.tree.qc[sa]-p.budget)
         p._lambda = min.(max.(p._lambda, 0.), max_clip)
 
+        # tracking
+        if p.solver.search_progress_info
+            push!(info[:lambda], p._lambda)
+            push!(info[:v_taken], p.tree.q[ha])
+            push!(info[:cv_taken], p.tree.qc[ha])
+
+            # get absolute best node (no lambda weights)
+            max_q = -Inf
+            ha_best = nothing
+            for nd in p.tree.children[1]
+                if p.tree.q[nd] > max_q
+                    max_q = p.tree.q[nd]
+                    ha_best = nd
+                end
+            end
+            push!(info[:v_best],p.tree.q[ha_best] )
+            push!(info[:cv_best],p.tree.qc[ha_best] )
+        end
     end
     info[:tree_queries] = nquery
     info[:search_time] = timer() - start_s

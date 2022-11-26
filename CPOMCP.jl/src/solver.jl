@@ -32,6 +32,14 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
     #p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
     p._lambda = zeros(Float64, t.n_costs)
     
+    if p.solver.search_progress_info
+        info[:lambda] = sizehint!(Vector{Float64}[p._lambda], p.solver.tree_queries)
+        info[:v_best] = sizehint!(Float64[], p.solver.tree_queries)
+        info[:cv_best] = sizehint!(Vector{Float64}[], p.solver.tree_queries)
+        info[:v_taken] = sizehint!(Float64[], p.solver.tree_queries)
+        info[:cv_taken] = sizehint!(Vector{Float64}[], p.solver.tree_queries)
+    end
+
     for i in 1:p.solver.tree_queries
         nquery += 1
         if CPUtime_us() - start_us >= 1e6*p.solver.max_time
@@ -48,7 +56,25 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
         ha = rand(p.rng, action_policy_UCB(CPOMCPObsNode(t,1), p._lambda, 0.0, 0.0))
         p._lambda += alpha(p.solver.alpha_schedule, i) .* (t.cv[ha] - p.budget)
         p._lambda = min.(max.(p._lambda, 0.), max_clip)
+        
+        # tracking
+        if p.solver.search_progress_info
+            push!(info[:lambda], p._lambda)
+            push!(info[:v_taken], t.v[ha])
+            push!(info[:cv_taken], t.cv[ha])
 
+            # get absolute best node (no lambda weights)
+            max_q = -Inf
+            ha_best = nothing
+            for nd in t.children[1]
+                if t.v[nd] > max_q
+                    max_q = t.v[nd]
+                    ha_best = nd
+                end
+            end
+            push!(info[:v_best],t.v[ha_best] )
+            push!(info[:cv_best],t.cv[ha_best] )
+        end
     end
     info[:search_time_us] = CPUtime_us() - start_us
     info[:tree_queries] = nquery

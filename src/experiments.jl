@@ -49,15 +49,21 @@ function get_tree(planner)
     end
 end
 
-function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, max_steps=100)
+function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, 
+    bu::Union{Nothing,Updater,Function}=nothing, max_steps=100)
     planner = solve(solver, p.cpomdp)
+    if bu===nothing
+        bu = POMDPs.updater(planner)
+    elseif bu isa Function
+        bu = bu(planner)
+    end
     R = 0
     C = zeros(n_costs(p.cpomdp))
     RC = 0
     γ = 1
     hist = NamedTuple[]
     
-    for (s, a, o, r, c, sp, b, ai) in stepthrough(p.cpomdp, planner, "s,a,o,r,c,sp,b,action_info", max_steps=max_steps)
+    for (s, a, o, r, c, sp, b, ai) in stepthrough(p.cpomdp, planner, bu, "s,a,o,r,c,sp,b,action_info", max_steps=max_steps)
         
         # track fictitions augmented reward
         rc = r - p.λ⋅c
@@ -80,16 +86,23 @@ function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, ma
     hist, R, C, RC
 end
 
-function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, max_steps=100)
+function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, 
+    bu::Union{Nothing,Function,Updater}=nothing, max_steps=100)
+
     planner = solve(solver, p)
-    
+    if bu===nothing
+        bu = POMDPs.updater(planner)
+    elseif bu isa Function
+        bu = bu(planner)
+    end
+
     R = 0
     C = zeros(n_costs(p.cpomdp))
     RC = 0
     γ = 1
     hist = NamedTuple[]
     
-    for (s, a, o, r, sp, b, ai) in stepthrough(p, planner, "s,a,o,r,sp,b,action_info", max_steps=max_steps)
+    for (s, a, o, r, sp, b, ai) in stepthrough(p, planner, bu, "s,a,o,r,sp,b,action_info", max_steps=max_steps)
         
         # the tracked reward is actually augmented reward, backtrack true reward and costs 
         rc = r

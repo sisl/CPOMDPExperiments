@@ -29,7 +29,8 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
     nquery = 0
     start_us = CPUtime_us()
     max_clip = (max_reward(p.problem) - min_reward(p.problem))/(1-discount(p.problem)) ./ p._tau
-    p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
+    #p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
+    p._lambda = zeros(Float64, t.n_costs)
     
     for i in 1:p.solver.tree_queries
         nquery += 1

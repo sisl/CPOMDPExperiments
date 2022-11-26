@@ -13,14 +13,14 @@ mutable struct LightDarkNew{F<:Function} <: POMDPs.POMDP{LightDark1DState,Int,Fl
     sigma::F
 end
 
-default_sigma(x::Float64) = abs(x - 10) + 1e-2
+default_sigma(x::Float64) = abs(x - 10)/sqrt(2) + 1e-2
 
 LightDarkNew() = LightDarkNew(0.95, 100.0, -100.0, 1.0, 1.0, default_sigma)
 POMDPs.discount(p::LightDarkNew) = p.discount_factor
 POMDPs.isterminal(::LightDarkNew, act::Int64) = act == 0
 POMDPs.isterminal(::LightDarkNew, s::LightDark1DState) = s.status < 0
 POMDPs.actions(::LightDarkNew) = [-10, -5, -1, 0, 1, 5, 10]
-POMDPs.initialstate(::LightDarkNew) = POMDPModels.LDNormalStateDist(2, 3)
+POMDPs.initialstate(::LightDarkNew) = POMDPModels.LDNormalStateDist(1, 3)
 POMDPs.initialobs(m::LightDarkNew, s) = POMDPs.observation(m, s)
 POMDPs.observation(p::LightDarkNew, sp::LightDark1DState) = Normal(sp.y, p.sigma(sp.y))
 
@@ -66,13 +66,13 @@ function CLightDarkNew(;pomdp::P=LightDarkNew(),
     return CLightDarkNew{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp,cost_budget,max_y)
 end
 
-costs(::CLightDarkNew, s::LightDark1DState, a::Int) = Float64[s.y >= max_y]
+costs(p::CLightDarkNew, s::LightDark1DState, a::Int) = Float64[s.y >= p.max_y]
 costs_limit(p::CLightDarkNew) = [p.cost_budget]
 n_costs(::CLightDarkNew) = 1
 max_reward(p::CLightDarkNew) = p.pomdp.correct_r
 min_reward(p::CLightDarkNew) = -p.pomdp.movement_cost
 
-function QMDP_V(p::LightDark1D, s::LightDark1DState, args...) 
+function QMDP_V(p::LightDarkNew, s::LightDark1DState, args...) 
     y = abs(s.y)
     steps = floor(Int, y/10)
     steps += floor(Int, y-10*steps)
@@ -80,11 +80,17 @@ function QMDP_V(p::LightDark1D, s::LightDark1DState, args...)
     return -sum([(γ^i)*p.movement_cost  for i in 0:steps-1]) + (γ^steps)*p.correct_r 
 end
 
-function QMDP_V(p::CLightDark1D, s::LightDark1DState, args...)
+function QMDP_V(p::CLightDarkNew, s::LightDark1DState, args...)
     V = QMDP_V(p.pomdp,s,args...)
-    y = abs(s.y)
     γ = discount(p)
     steps = floor(Int, (s.y+10-p.max_y)/10)
     C = sum([γ^i for i in 0:steps-1])
     return (V, [C])
+end
+
+function zeroV_trueC(p::CLightDarkNew, s::LightDark1DState, args...)
+    γ = discount(p)
+    steps = floor(Int, (s.y+10-p.max_y)/10)
+    C = sum([γ^i for i in 0:steps-1])
+    return (0, [C])
 end

@@ -7,6 +7,7 @@ using Plots
 using D3Trees
 using Random
 
+
 kwargs = Dict(:tree_queries=>10000, 
         :k_observation => 0.1,
         :alpha_action => 01/50)
@@ -25,7 +26,7 @@ hist1, R1, C1, RC1 = run_pomdp_simulation(pomdp, solver)
 R1
 C1[1]
 RC1
-plot_lightdark_beliefs(hist1,"belief_l0.png")
+plot_lightdark_beliefs(hist1,"figs/belief_l0.png")
 inchrome(D3Tree(hist1[1][:tree]))
 inchrome(D3Tree(hist1[5][:tree]))
 
@@ -39,7 +40,7 @@ hist2, R2, C2, RC2 = run_pomdp_simulation(pomdp, solver)
 R2
 C2[1]
 RC2
-plot_lightdark_beliefs(hist2,"belief_lgiven.png")
+plot_lightdark_beliefs(hist2,"figs/belief_lgiven.png")
 
 inchrome(D3Tree(hist2[1][:tree]))
 
@@ -54,7 +55,7 @@ hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver)
 R3
 C3[1]
 RC3
-plot_lightdark_beliefs(hist3,"belief_constrained.png")
+plot_lightdark_beliefs(hist3,"figs/belief_constrained.png")
 
 inchrome(D3Tree(hist3[1][:tree]))
 
@@ -146,4 +147,4 @@ le = run_lambda_experiments(lambdas,
     nsims=5)
 
 plot_lambdas(le;target_cost=30.,
-    saveloc="ld_lambdas.png")
+    saveloc="figs/ld_lambdas.png")

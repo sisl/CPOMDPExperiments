@@ -7,10 +7,10 @@ using Plots
 using D3Trees
 using Random
 
-kwargs = Dict(:tree_queries=>10000, 
+kwargs = Dict(:tree_queries=>100000, 
         :k_observation => 0.1,
         :alpha_action => 01/50)
-c = 250.0
+c = 100.0 # 250
 nu = 0.0
 λ_test = [1.]
 
@@ -44,12 +44,22 @@ plot_lightdark_beliefs(hist2,"belief_lgiven.png")
 inchrome(D3Tree(hist2[1][:tree]))
 
 # cpomcpow - fixed budget
+
+
+kwargs = Dict(:tree_queries=>100000, 
+        :k_observation => 0.1,
+        :alpha_action => 01/100,
+        :max_depth => 10)
+c = 250.0 # 250
+nu = 0.0
+λ_test = [1.]
 cpomdp = SoftConstraintPOMDPWrapper(CLightDark1D();λ=λ_test)
 solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
     criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
-    estimate_value=(args...)->(0.0, [0.0]),
+    estimate_value=QMDP_V,
     tree_in_info=true,
     search_progress_info=true)
+
 hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver)
 R3
 C3[1]
@@ -57,6 +67,25 @@ RC3
 plot_lightdark_beliefs(hist3,"belief_constrained.png")
 
 inchrome(D3Tree(hist3[1][:tree]))
+
+
+extract_search_progress(search_info::NamedTuple) = (
+    search_info[:v_best],
+    [c[1] for c in search_info[:cv_best]],
+    search_info[:v_taken],
+    [c[1] for c in search_info[:cv_taken]],
+    [c[1] for c in search_info[:lambda]],
+)
+
+v_best, cv_best, v_taken, cv_taken, lambdas = extract_search_progress(hist3[1])
+
+plot(v_best)
+plot(cv_best)
+plot(v_taken)
+plot(cv_taken)
+plot(lambdas)
+
+
 
 # check for working lambda ascent
 kwargs[:tree_queries]=100000

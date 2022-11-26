@@ -163,3 +163,21 @@ function QMDP_V(p::SoftConstraintPOMDPWrapper, args...)
     V, C = QMDP_V(p.cpomdp, args...)
     return V - λ⋅C
 end
+
+
+### 
+struct SearchProgress
+    v_best::Vector{Float64}
+    cv_best::Vector{Float64}
+    v_taken::Vector{Float64}
+    cv_taken::Vector{Float64}
+    lambda::Vector{Float64}
+end
+    
+SearchProgress(search_info::NamedTuple) = SearchProgress(
+    search_info[:v_best],
+    [c[1] for c in search_info[:cv_best]],
+    search_info[:v_taken],
+    [c[1] for c in search_info[:cv_taken]],
+    [c[1] for c in search_info[:lambda]],
+)

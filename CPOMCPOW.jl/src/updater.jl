@@ -15,7 +15,7 @@ initialize_belief(bu::CPOMCPOWBudgetUpdateWrapper, dist) = initialize_belief(bu.
 function updater(p::CPOMCPOWPlanner)
     P = typeof(p.problem)
     @assert P<:CPOMDP "planner problem not a CPOMDP"
-    rng = MersenneTwister(rand(p.solver.rng, UInt32)) # how POMCPOW initializes updater but not sure why this over just passing the rng
+    rng = MersenneTwister(rand(p.solver.rng, UInt32)) # how POMCPOW initializes updater but not sure why this over just passing the rng FIXME
     return CPOMCPOWBudgetUpdateWrapper(BootstrapFilter(p.problem, 10*p.solver.tree_queries, rng), p)
 end
 

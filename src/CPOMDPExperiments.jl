@@ -31,7 +31,7 @@ using CPOMCPOW
 using POMDPModels
 export CLightDark1D
 include("cpomdps/clightdark.jl")
-export LightDarkNew, CLightDarkNew
+export LightDarkNew, CLightDarkNew, zeroV_trueC
 include("cpomdps/clightdarknew.jl")
 
 using RockSample
@@ -59,7 +59,8 @@ export
     zero_V,
     QMDP_V,
     LambdaExperiments,
-    plot_lambdas
+    plot_lambdas,
+    SearchProgress
 include("utils.jl") 
 
 # experiment scripts

@@ -69,7 +69,10 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
     nquery = 0
     start_s = timer()
     max_clip = (max_reward(p.mdp) - min_reward(p.mdp))/(1-discount(p.mdp)) ./ p._tau
-    p._lambda = rand(p.rng, n_costs(p.mdp)) .* max_clip # random initialization
+    # p._lambda = rand(p.rng, n_costs(p.mdp)) .* max_clip # random initialization
+    p._lambda = zeros(Float64, n_costs(p.mdp))
+
+    
     for i = 1:p.solver.n_iterations
         nquery += 1
         simulate(p, snode, p.solver.depth) # (not 100% sure we need to make a copy of the state here)

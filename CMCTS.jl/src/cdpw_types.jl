@@ -130,6 +130,7 @@ mutable struct CDPWSolver <: AbstractCMCTSSolver
     check_repeat_action::Bool
     tree_in_info::Bool
     search_progress_info::Bool
+    return_best_cost::Bool
     rng::AbstractRNG
     alpha_schedule::AlphaSchedule
     estimate_value::Any
@@ -164,6 +165,7 @@ function CDPWSolver(;depth::Int=10,
                     check_repeat_action::Bool=true,
                     tree_in_info::Bool=false,
                     search_progress_info::Bool=false,
+                    return_best_cost::Bool=false,
                     rng::AbstractRNG=Random.GLOBAL_RNG,
                     alpha_schedule::AlphaSchedule = InverseAlphaSchedule(),
                     estimate_value::Any=RolloutEstimator(RandomSolver(rng)),
@@ -177,7 +179,7 @@ function CDPWSolver(;depth::Int=10,
                     timer=() -> 1e-9 * time_ns())
     CDPWSolver(depth, exploration_constant, nu, n_iterations, max_time, k_action, alpha_action, k_state, alpha_state, 
         keep_tree, enable_action_pw, enable_state_pw, check_repeat_state, check_repeat_action, 
-        tree_in_info, search_progress_info, rng, alpha_schedule, estimate_value, init_Q, init_N, init_Qc, 
+        tree_in_info, search_progress_info, return_best_cost, rng, alpha_schedule, estimate_value, init_Q, init_N, init_Qc, 
         next_action, default_action, reset_callback, show_progress, timer)
 end
 

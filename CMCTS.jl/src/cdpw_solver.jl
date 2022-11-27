@@ -97,8 +97,8 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
         # tracking
         if p.solver.search_progress_info
             push!(info[:lambda], p._lambda)
-            push!(info[:v_taken], p.tree.q[ha])
-            push!(info[:cv_taken], p.tree.qc[ha])
+            push!(info[:v_taken], p.tree.q[sa])
+            push!(info[:cv_taken], p.tree.qc[sa])
 
             # get absolute best node (no lambda weights)
             max_q = -Inf
@@ -209,6 +209,18 @@ function simulate(dpw::CDPWPlanner, snode::Int, d::Int)
             tree.top_level_costs[sanode] += (c-tree.top_level_costs[sanode])/tree.n[sanode]
         end
     end
+
+    if sol.return_best_cost
+        LC = dot(dpw._lambda .+ 1e-3, qc)
+        for ch in tree.children[snode]
+            LC_temp = dot(dpw._lambda .+ 1e-3, tree.qc[ch])
+            if LC_temp < LC
+                LC = LC_temp
+                qc = tree.qc[ch]
+            end
+        end
+    end
+
     return q, qc
 end
 

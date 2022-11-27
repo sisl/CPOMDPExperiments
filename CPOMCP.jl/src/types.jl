@@ -79,6 +79,7 @@ Partially Observable Monte Carlo Planning Solver.
     max_time::Float64       = Inf
     tree_in_info::Bool      = false
     search_progress_info::Bool  = false
+    return_best_cost::Bool  = false
     default_action::Any     = ExceptionRethrow()
     rng::AbstractRNG        = Random.GLOBAL_RNG
     alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
@@ -189,6 +190,7 @@ solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
     max_time::Float64       = Inf
     tree_in_info::Bool      = false
     search_progress_info::Bool  = false
+    return_best_cost::Bool  = false
     default_action::Any     = ExceptionRethrow()
     rng::AbstractRNG        = Random.GLOBAL_RNG
     next_action::Any            = RandomActionGenerator(rng)
@@ -219,7 +221,7 @@ struct CPOMCPDPWTree{S,A,O} <: AbstractCPOMCPTree
 
     # constraints
     n_costs::Int                         # number of costs
-    top_level_costs::Vector{Vector{Float64}}    # top-level average cost (only if step)
+    top_level_costs::Dict{Int,Vector{Float64}}    # top-level average cost (only if step)
 end
 
 function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
@@ -227,7 +229,6 @@ function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
     A = actiontype(pomdp)
     O = obstype(pomdp)
     sz = min(100_000, sz)
-    tsh = 20 # top-level size hint
     return CPOMCPDPWTree{S,A,O}(sizehint!(Int[0], sz),
                           sizehint!(Vector{Int}[[]], sz),
                           sizehint!(Array{O}(undef, 1), sz),
@@ -245,7 +246,7 @@ function CPOMCPDPWTree(pomdp::CPOMDP, b, sz::Int=1000)
                           Set{Tuple{Int,Int}}(),
                           
                           n_costs(pomdp),
-                          sizehint!(Vector{Float64}[],tsh) # top_level_costs
+                          Dict{Int,Vector{Float64}}() # top_level_costs
                          )
 end
 
@@ -266,9 +267,6 @@ function insert_action_node!(t::CPOMCPDPWTree, h::Int, a;top_level=false)
     push!(t.cv, zeros(Float64, t.n_costs))
     push!(t.transitions, Vector{Float64}[])
     ha = length(t.n)
-    if top_level
-        push!(t.top_level_costs, zeros(Float64, t.n_costs))
-    end
     push!(t.children[h], ha)
     push!(t.n_a_children, 0)
     t.a_lookup[(h, a)] = ha

@@ -88,9 +88,43 @@ function QMDP_V(p::CLightDarkNew, s::LightDark1DState, args...)
     return (V, [C])
 end
 
-function zeroV_trueC(p::CLightDarkNew, s::LightDark1DState, args...)
+function trueC(p::CLightDarkNew, s::LightDark1DState)
     γ = discount(p)
     steps = floor(Int, (s.y+10-p.max_y)/10)
     C = sum([γ^i for i in 0:steps-1])
-    return (0, [C])
+    return [C]
 end
+
+zeroV_trueC(p::CLightDarkNew, s::LightDark1DState, args...) = (0, trueC(p,s))
+
+function zeroV_trueC(p::CPOMDPs.GenerativeBeliefCMDP{P}, s::ParticleFilters.ParticleCollection{S}, args...) where {P<:CLightDarkNew, S<:LightDark1DState}
+    C = [0.]
+    ws = weights(s)
+    for (part, w) in zip(particles(s),ws)
+        C .+= trueC(p.cpomdp, part) * w
+    end
+    C ./= sum(ws)
+    return (0, C) # replaces old weight_sum(particle collections) that was 1 
+
+end
+
+function heuristicV(p::POMDP, s::ParticleFilters.ParticleCollection{S}) where {S<:LightDark1DState}
+    ys = [p.y for p in particles(s)]
+    m = Statistics.mean(ys)
+    sig = Statistics.std(ys)
+    V = 0
+    γ = discount(p)
+    steps = 1
+    if sig > 1 # go to 10 first for two time steps
+        steps += ceil(abs(10-m)/5) + 2
+    end
+    V += -sum([(γ^i)*p.movement_cost  for i in 0:steps-1]) + (γ^steps)*p.correct_r
+    return V
+
+end
+
+heuristicV(p::CPOMDPs.GenerativeBeliefCMDP{P}, s::ParticleFilters.ParticleCollection{S}, 
+    args...) where {P<:CLightDarkNew, S<:LightDark1DState} = return (heuristicV(p.cpomdp.pomdp, s), zeroV_trueC(p,s,args...)[2])
+
+heuristicV(p::POMDPTools.GenerativeBeliefMDP{P}, s::ParticleFilters.ParticleCollection{S}, 
+    args...) where {P<:LightDarkNew, S<:LightDark1DState} = return heuristicV(p.pomdp, s)

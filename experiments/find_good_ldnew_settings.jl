@@ -46,7 +46,7 @@ end
 ## constrained
 
 if runs[2]
-    cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.5);λ=λ_test)
+    cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.1);λ=λ_test)
     solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
         criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
         estimate_value=zeroV_trueC,
@@ -83,7 +83,7 @@ if runs[2]
 end 
 
 if runs[3]
-    cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.5);λ=λ_test)
+    cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.1);λ=λ_test)
     solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
         criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
         estimate_value=zeroV_trueC,
@@ -98,7 +98,7 @@ if runs[3]
     R5
     C5[1]
     RC5
-    plot_lightdark_beliefs(hist4,"figs/belief_ldn_constrained_2.png")
+    plot_lightdark_beliefs(hist5,"figs/belief_ldn_constrained_2.png")
 
     inchrome(D3Tree(hist5[1][:tree]))
 

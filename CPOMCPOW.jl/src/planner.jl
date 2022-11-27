@@ -69,6 +69,8 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
             max_depth = min(pomcp.solver.max_depth, ceil(Int, log(pomcp.solver.eps)/log(discount(pomcp.problem))))
             simulate(pomcp, CPOWTreeObsNode(tree, 1), s, max_depth)
             all_terminal = false
+        else
+            continue
         end
 
         # dual ascent with clipping

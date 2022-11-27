@@ -1,6 +1,9 @@
 make_tree(s::CPOMCPSolver, p::CPOMDP, b) = CPOMCPTree(p, b, s.tree_queries)
 make_tree(s::CPOMCPDPWSolver, p::CPOMDP, b) = CPOMCPDPWTree(p, b, s.tree_queries)
 
+get_top_level_costs(tree::CPOMCPTree, nodes::Vector{Int}) = tree.top_level_costs[nodes]
+get_top_level_costs(tree::CPOMCPDPWTree, nodes::Vector{Int}) = map(i->tree.top_level_costs[i],nodes)
+
 function POMDPTools.action_info(p::AbstractCPOMCPPlanner, b; tree_in_info=false)
     local a::actiontype(p.problem)
     info = Dict{Symbol, Any}()
@@ -9,7 +12,7 @@ function POMDPTools.action_info(p::AbstractCPOMCPPlanner, b; tree_in_info=false)
         policy = search(p, b, tree, info)
         info[:policy] = policy
         a = tree.a_labels[rand(p.rng, policy)]
-        p._cost_mem = dot(tree.top_level_costs[policy.vals], policy.probs)
+        p._cost_mem = dot(get_top_level_costs(tree,policy.vals), policy.probs)
         p._tree = tree
         if p.solver.tree_in_info || tree_in_info
             info[:tree] = tree
@@ -50,6 +53,8 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
         if !POMDPs.isterminal(p.problem, s)
             simulate(p, s, CPOMCPObsNode(t,1), p.solver.max_depth)
             all_terminal = false
+        else
+            continue
         end
 
         # dual ascent w/ clipping
@@ -179,6 +184,18 @@ function simulate(p::CPOMCPPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     if steps == p.solver.max_depth
         t.top_level_costs[ha] += (c-t.top_level_costs[ha])/t.n[ha]
     end
+
+    if p.solver.return_best_cost
+        LC = dot(p._lambda .+ 1e-3, C)
+        for ch in t.children[h]
+            LC_temp = dot(p._lambda .+ 1e-3, t.cv[ch])
+            if LC_temp < LC
+                LC = LC_temp
+                C = t.cv[ch]
+            end
+        end
+    end
+
     return R, C
 end
 
@@ -194,7 +211,7 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
     if sol.enable_action_pw
         if length(t.children[h]) <= sol.k_action*t.total_n[h]^sol.alpha_action
             a = next_action(p.next_action, p.problem, s, hnode)
-            if !sol.check_repeat_act || !haskey(t.a_loookup,(h,a))
+            if !sol.check_repeat_act || !haskey(t.a_lookup,(h,a))
                 insert_action_node!(t,h,a;top_level=top_level)
             end
         end
@@ -254,11 +271,10 @@ function simulate(p::CPOMCPDPWPlanner, s, hnode::CPOMCPObsNode, steps::Int)
 
     # top level cost estimator
     if steps == p.solver.max_depth
-        tlcs = length(t.top_level_costs)
-        if ha <= tlcs
+        if ha in keys(t.top_level_costs)
             t.top_level_costs[ha] += (c-t.top_level_costs[ha])/t.n[ha]
         else
-            error("Improper indexing of top level costs")
+            t.top_level_costs[ha] = c
         end
     end
     return R, C

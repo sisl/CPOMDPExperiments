@@ -125,6 +125,7 @@ Fields:
     init_V::Any                 = 0.0
     init_N::Any                 = 0
     init_C::Any                 = 0.
+    init_λ::Union{Nothing,Vector{Float64}} = nothing
     return_best_cost::Bool      = false # if true, simulate best costs up tree 
     next_action::Any            = RandomActionGenerator(rng)
     default_action::Any         = ExceptionRethrow()

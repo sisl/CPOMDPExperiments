@@ -50,8 +50,11 @@ function search(pomcp::CPOMCPOWPlanner, tree::CPOMCPOWTree, info::Dict{Symbol,An
     i = 0
     max_clip = (max_reward(pomcp.problem) - min_reward(pomcp.problem))/(1-discount(pomcp.problem)) ./ pomcp._tau
     #pomcp._lambda = rand(pomcp.solver.rng, tree.n_costs) .* max_clip # random initialization
-    pomcp._lambda = zeros(Float64, tree.n_costs) # start unconstrained
-    
+    if pomcp.solver.init_λ === nothing
+        pomcp._lambda = zeros(Float64, tree.n_costs) # start unconstrained
+    else
+        pomcp._lambda = pomcp.solver.init_λ
+    end
     t0 = timer()
 
     if pomcp.solver.search_progress_info

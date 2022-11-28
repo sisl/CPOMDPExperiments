@@ -6,7 +6,7 @@ end
 # Option 0, amount penalty in POMDP, constraint on steps
 function SpillpointInjectionCPOMDP(;pomdp::P=SpillpointInjectionPOMDP(
         exited_reward_binary=0., 
-        exited_reward_amount=1000, 
+        exited_reward_amount=-1000, 
         sat_noise_std = 0.01),
     constraint_budget::Float64 = 0.1, # discounted number of steps with allowed exit (aka exit probability)
     ) where {P<:SpillpointInjectionPOMDP}
@@ -48,7 +48,7 @@ costs(::SpillpointInjectionCPOMDP, s, a, sp) = [sp.v_exited - s.v_exited]
 
 costs_limit(p::SpillpointInjectionCPOMDP) = [p.constraint_budget]
 n_costs(::SpillpointInjectionCPOMDP) = 1
-max_volume_diff(p::SpillpointInjectionCPOMDP) = 100 # maximum expected volume diff in a single step FIXME
+max_volume_diff(p::SpillpointInjectionCPOMDP) = p.pomdp.injection_rates * maximum(p.pomdp.Δt)
 max_reward(p::SpillpointInjectionCPOMDP) = p.pomdp.trapped_reward * max_volume_diff(p)
 min_reward(p::SpillpointInjectionCPOMDP) = minimum(p.pomdp.obs_rewards)
 

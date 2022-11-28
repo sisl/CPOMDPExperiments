@@ -8,12 +8,11 @@ using Random
 c = 20.0 
 nu = 0.0
 solver_kwargs = Dict(:tree_queries=>100, #5000,
-       # :k_action => 30.,
-       # :alpha_action => 1/30,
+        :init_λ => [1000.],
         :k_observation => 10.,
         :alpha_observation => 0.3,
         :max_depth => 30,
-        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(10.), # how much to update lambda by        
+        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(100.), # how much to update lambda by        
         :tree_in_info => true,
         :search_progress_info => true,
         :estimate_value => QMDP_V,
@@ -24,7 +23,7 @@ solver_kwargs = Dict(:tree_queries=>100, #5000,
 # SpillpointInjectionPOMDP(;exited_reward_amount=-1000, exited_reward_binary=-1000, obs_rewards=[-0.3, -0.7] , height_noise_std=0.01, sat_noise_std=0.01)
 
 
-max_steps = 2 #100
+max_steps = 25 #100
 λ_test = [0.] #  gets used when running unconstrained problem with scalarized reward
 
 cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=0.01);

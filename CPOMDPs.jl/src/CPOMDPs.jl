@@ -6,6 +6,7 @@ import POMDPLinter
 import POMDPs: simulate, gen, @gen
 using POMDPTools
 import POMDPTools: UnderlyingMDP, stepthrough # for ConstrainedRollout
+using Infiltrator
 
 export 
     

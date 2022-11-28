@@ -2,82 +2,71 @@ using Revise
 using CPOMDPExperiments
 using D3Trees
 using Plots 
+using Random
 
 ### Find Good Settings
-kwargs = Dict(:tree_queries=>5000,
-        :k_action => 30.,
-        :alpha_action => 1/30,
-        :k_observation => 10.,
-        :alpha_observation => 0.3,
-        #:max_depth => 30,
-        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(1e-2))
-
-
-
 c = 20.0 
 nu = 0.0
-λ_test = [5.] # default meas_cost is 5., but set to 0. in CVDPTagPOMDP
-filter_size = Int(1e4)
+solver_kwargs = Dict(:tree_queries=>100, #5000,
+       # :k_action => 30.,
+       # :alpha_action => 1/30,
+        :k_observation => 10.,
+        :alpha_observation => 0.3,
+        :max_depth => 30,
+        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(10.), # how much to update lambda by        
+        :tree_in_info => true,
+        :search_progress_info => true,
+        :estimate_value => QMDP_V,
+        :criterion=>CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu),
+)
 
-cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=100.);
+# default pomdp for reference
+# SpillpointInjectionPOMDP(;exited_reward_amount=-1000, exited_reward_binary=-1000, obs_rewards=[-0.3, -0.7] , height_noise_std=0.01, sat_noise_std=0.01)
+
+
+max_steps = 2 #100
+λ_test = [0.] #  gets used when running unconstrained problem with scalarized reward
+
+cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=0.01);
     λ=λ_test)
 
-solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
-    criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
-    estimate_value=zeroV_trueC,
-    tree_in_info=true,
-    search_progress_info=true)
+solver = CPOMDPExperiments.CPOMCPOWSolver(;solver_kwargs..., 
+    )
 
 updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
-    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, filter_size, solver.rng), 
+    CPOMDPExperiments.SpillpointPOMDP.SIRParticleFilter(
+        model=cpomdp.cpomdp,  
+        N=200, 
+        state2param=CPOMDPExperiments.SpillpointPOMDP.state2params, 
+        param2state=CPOMDPExperiments.SpillpointPOMDP.params2state,
+        N_samples_before_resample=100,
+        clampfn=CPOMDPExperiments.SpillpointPOMDP.clamp_distribution,
+        fraction_prior = 0.5,
+        prior=CPOMDPExperiments.SpillpointPOMDP.param_distribution(
+            CPOMDPExperiments.initialstate(cpomdp.cpomdp)),
+        elite_frac=0.3,
+        bandwidth_scale=.5,
+        max_cpu_time=20 #60
+    ), 
     planner)
 
-hist3, R3, C3, RC3 = run_cpomdp_simulation(cpomdp, solver, updater)
+hist, R, C, RC = run_cpomdp_simulation(cpomdp, solver, updater, max_steps)
 
-R3
-C3[1]
-RC3
-plot_lightdark_beliefs(hist3,"figs/belief_vdp_unconstrained.png")
+R
+C[1]
+RC
 
-inchrome(D3Tree(hist3[1][:tree]))
+inchrome(D3Tree(hist[1][:tree]))
 
 
-sp3 = SearchProgress(hist3[1])
+sp = SearchProgress(hist[1])
 
-plot(sp3.v_best)
-plot(sp3.cv_best)
-plot(sp3.v_taken)
-plot(sp3.cv_taken)
-plot(sp3.lambda)
+# can plot values of best actions, taken actions, and lambdas across the search
+plot(sp.v_best)
+plot(sp.cv_best)
+plot(sp.v_taken)
+plot(sp.cv_taken)
+plot(sp.lambda)
 
 
 ## constrained
-
-cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=5.);
-    λ=λ_test)
-solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., 
-    criterion=CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
-    estimate_value=zeroV_trueC,
-    tree_in_info=true,
-    search_progress_info=true)
-updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
-    CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, filter_size, solver.rng), 
-    planner)
-hist4, R4, C4, RC4 = run_cpomdp_simulation(cpomdp, solver, updater)
-
-R4
-C4[1]
-RC4
-plot_lightdark_beliefs(hist4,"figs/belief_vdp_constrained.png")
-
-inchrome(D3Tree(hist4[1][:tree]))
-
-
-sp4 = SearchProgress(hist4[1])
-
-plot(sp4.v_best)
-plot(sp4.cv_best)
-plot(sp4.v_taken)
-plot(sp4.cv_taken)
-plot(sp4.lambda)
-

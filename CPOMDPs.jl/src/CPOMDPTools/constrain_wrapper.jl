@@ -16,9 +16,9 @@ POMDPs.actions(m::ConstrainMDPWrapper) = POMDPs.actions(m.mdp)
 POMDPs.actions(m::ConstrainMDPWrapper, s) = POMDPs.actions(m.mdp, s) 
 POMDPs.statetype(p::ConstrainMDPWrapper) = POMDPs.statetype(p.mdp) 
 POMDPs.actiontype(p::ConstrainMDPWrapper) = POMDPs.actiontype(p.mdp) 
-function POMDPs.gen(m::ConstrainMDPWrapper, s, a, rng::AbstractRNG)
-    nt = POMDPs.gen(m.mdp, s, a, rng)
-    return merge(nt, (c=costs(m,s,a,nt[:sp])))
+function POMDPs.gen(m::ConstrainMDPWrapper, s, a, args...)
+    nt = POMDPs.gen(m.mdp, s, a, args...)
+    return merge(nt, (;c=costs(m,s,a,nt[:sp])))
 end
 
 abstract type ConstrainPOMDPWrapper{P,S,A,O} <: CPOMDP{S,A,O} where {P<:POMDP} end
@@ -48,10 +48,7 @@ POMDPs.observations(problem::ConstrainPOMDPWrapper, s) = POMDPs.observations(pro
 POMDPs.statetype(p::ConstrainPOMDPWrapper) = POMDPs.statetype(p.pomdp)
 POMDPs.actiontype(p::ConstrainPOMDPWrapper) = POMDPs.actiontype(p.pomdp)
 POMDPs.obstype(p::ConstrainPOMDPWrapper) = POMDPs.obstype(p.pomdp)
-function POMDPs.gen(m::ConstrainPOMDPWrapper, s, a, rng::AbstractRNG)
-    nt = POMDPs.gen(m.pomdp, s, a, rng)
-    if :sp in keys(nt)
-        return merge(nt, (c=costs(m,s,a,nt[:sp], nt[:o])))
-    end
-    return nt
+function POMDPs.gen(m::ConstrainPOMDPWrapper, s, a, args...)
+    nt = POMDPs.gen(m.pomdp, s, a, args...)
+    return merge(nt, (;c=costs(m,s,a,nt[:sp], nt[:o])))
 end

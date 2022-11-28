@@ -41,6 +41,7 @@ end
 function update(up::CMCTSBudgetUpdateWrapper, b, a, o)
     if up.planner.tree != nothing
         up.planner.budget = (up.planner.budget - up.planner._cost_mem)/discount(up.planner.mdp)
+        up.planner.budget = max.(0, up.planner.budget) .+ eps(Float64)
     end
     return update(up.updater, b, a, o)
 end

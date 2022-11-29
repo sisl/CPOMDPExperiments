@@ -46,8 +46,8 @@ end
 
 costs(::SpillpointInjectionCPOMDP, s, a, sp) = [sp.v_exited - s.v_exited]
 
-
-
+Base.convert(::Type{ParticleFilters.ParticleCollection{SpillpointPOMDP.SpillpointInjectionState}}, 
+    s::SpillpointPOMDP.SIRParticleBelief{SpillpointPOMDP.SpillpointInjectionState}) = s.particle_collection
 
 costs_limit(p::SpillpointInjectionCPOMDP) = [p.constraint_budget]
 n_costs(::SpillpointInjectionCPOMDP) = 1
@@ -62,9 +62,9 @@ function QMDP_V(p::CPOMDPs.GenerativeBeliefCMDP{P}, s::ParticleFilters.ParticleC
     V = 0.
     ws = weights(s)
     for (part, w) in zip(particles(s),ws)
-        V .+= QMDP_V(p.cpomdp, part, args...)[1] * w
+        V += QMDP_V(p.cpomdp, part, args...)[1] * w
     end
-    V ./= sum(ws)
+    V /= sum(ws)
     return (V, zeros(Float64, n_costs(p.cpomdp))) # replaces old weight_sum(particle collections) that was 1 
 
 end

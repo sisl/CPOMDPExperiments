@@ -27,6 +27,9 @@ function POMDPTools.action_info(p::CDPWPlanner, s; tree_in_info=false)
         end
         # initialize tree and state node
         S = statetype(p.mdp)
+        if !(s isa S)
+            s = convert(S,s)
+        end
         A = actiontype(p.mdp)
         if p.solver.keep_tree && p.tree != nothing
             tree = p.tree

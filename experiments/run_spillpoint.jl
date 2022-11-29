@@ -12,8 +12,8 @@ cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=
 
 # global parameters
 max_steps=25
-tree_queries = 100 # Int(1000) FIXME
-pft_tree_queries = 10 # Int(100) FIXME
+tree_queries = Int(1000) 
+pft_tree_queries = Int(100)
 k_observation = 10.
 alpha_observation = 0.3
 max_depth = 10
@@ -36,7 +36,7 @@ default_updater = CPOMDPExperiments.SpillpointPOMDP.SIRParticleFilter(
             CPOMDPExperiments.initialstate(cpomdp.cpomdp)),
         elite_frac=0.3,
         bandwidth_scale=.5,
-        max_cpu_time=2 #20 #60 FIXME 
+        max_cpu_time=20 #60 FIXME 
     )
 
 
@@ -55,7 +55,7 @@ if run[1] # POMCPOW
         :estimate_value=>QMDP_V,
     )
     exp1 = LightExperimentResults(nsims)
-    @showprogress 1 for i = 1:nsims
+    @showprogress 1 @distributed for i = 1:nsims
         Random.seed!(i)
         solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., rng = MersenneTwister(i))
         updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(default_updater, planner)
@@ -79,7 +79,7 @@ if run[2] # POMCP
         :estimate_value=>QMDP_V,
     )
     exp2 = LightExperimentResults(nsims)
-    @showprogress 1 for i = 1:nsims
+    @showprogress 1 @distributed for i = 1:nsims
         Random.seed!(i)
         solver = CPOMDPExperiments.CPOMCPDPWSolver(;kwargs..., rng = MersenneTwister(i))
         updater(planner) = CPOMDPExperiments.CPOMCP.CPOMCPBudgetUpdateWrapper(default_updater, planner)
@@ -103,7 +103,7 @@ if run[3] # PFT
         :estimate_value=>QMDP_V,
     )
     exp3 = LightExperimentResults(nsims)
-    @showprogress 1 for i = 1:nsims
+    @showprogress 1 @distributed for i = 1:nsims
         Random.seed!(i)
         rng = MersenneTwister(i)
         up = CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, pf_filter_size, rng)

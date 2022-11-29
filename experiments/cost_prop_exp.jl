@@ -2,7 +2,6 @@ using Revise
 using CPOMDPExperiments
 using D3Trees
 using Plots 
-using Infiltrator
 using Random
 using LinearAlgebra
 import Statistics
@@ -23,7 +22,7 @@ kwargs = Dict(:tree_queries=>1e5,
 λ_test = [1.]
 runs = [true, true, true]
 
-nsims = 20
+nsims = 100
 
 # unconstrained
 if runs[1]

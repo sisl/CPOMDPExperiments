@@ -50,7 +50,7 @@ function get_tree(planner)
 end
 
 function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, 
-    bu::Union{Nothing,Updater,Function}=nothing, max_steps=100)
+    bu::Union{Nothing,Updater,Function}=nothing, max_steps=100;track_history::Bool=true)
     planner = solve(solver, p.cpomdp)
     if bu===nothing
         bu = POMDPs.updater(planner)
@@ -73,21 +73,22 @@ function run_cpomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver,
         RC += rc*γ 
 
         γ *= discount(p)
-
-        push!(hist, (;s, a, o, r, c, rc, sp, b, 
-            tree = :tree in keys(ai) ? ai[:tree] : nothing,
-            lambda = :lambda in keys(ai) ? ai[:lambda] : nothing,
-            v_best = :v_best in keys(ai) ? ai[:v_best] : nothing,
-            cv_best = :cv_best in keys(ai) ? ai[:cv_best] : nothing,
-            v_taken = :v_taken in keys(ai) ? ai[:v_taken] : nothing,
-            cv_taken = :cv_taken in keys(ai) ? ai[:cv_taken] : nothing,
-            ))
+        if track_history
+            push!(hist, (;s, a, o, r, c, rc, sp, b, 
+                tree = :tree in keys(ai) ? ai[:tree] : nothing,
+                lambda = :lambda in keys(ai) ? ai[:lambda] : nothing,
+                v_best = :v_best in keys(ai) ? ai[:v_best] : nothing,
+                cv_best = :cv_best in keys(ai) ? ai[:cv_best] : nothing,
+                v_taken = :v_taken in keys(ai) ? ai[:v_taken] : nothing,
+                cv_taken = :cv_taken in keys(ai) ? ai[:cv_taken] : nothing,
+                ))
+        end
     end
     hist, R, C, RC
 end
 
 function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver, 
-    bu::Union{Nothing,Function,Updater}=nothing, max_steps=100)
+    bu::Union{Nothing,Function,Updater}=nothing, max_steps=100;track_history::Bool=true)
 
     planner = solve(solver, p)
     if bu===nothing
@@ -114,9 +115,10 @@ function run_pomdp_simulation(p::SoftConstraintPOMDPWrapper, solver::Solver,
         RC += rc*γ 
 
         γ *= discount(p)
-
-        push!(hist, (;s, a, o, r, c, rc, sp, b, 
-            tree = :tree in keys(ai) ? ai[:tree] : nothing))
+        if track_history
+            push!(hist, (;s, a, o, r, c, rc, sp, b, 
+                tree = :tree in keys(ai) ? ai[:tree] : nothing))
+        end
     end
     hist, R, C, RC
 end

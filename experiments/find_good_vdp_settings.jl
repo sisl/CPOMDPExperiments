@@ -2,6 +2,9 @@ using Revise
 using CPOMDPExperiments
 using D3Trees
 using Plots 
+using Distributed
+using Random
+using ProgressMeter
 
 ### Find Good Settings
 # default from paper, commented from repository
@@ -18,7 +21,8 @@ nu = 0.0
 λ_test = [5.] # default meas_cost is 5., but set to 0. in CVDPTagPOMDP
 filter_size = Int(1e4)
 
-runs = [true, true, true, true]
+runs = [false, false, false, false, true]
+
 
 if runs[1]
     cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=100.);
@@ -171,4 +175,36 @@ if runs[4]
     layer1 = hist6[1][:tree].children[1]
     hist6[1][:tree].v[layer1]
     hist6[1][:tree].cv[layer1]
+end
+
+#scalarized POMDP, what rewards do you get 
+if runs[5]
+    nsims = 10
+    filter_size = Int(1e4)
+    kwargs = Dict(:tree_queries=>1e5,
+        :k_action => 30., # 25.
+        :alpha_action => 1/30, #1/20
+        :k_observation => 5., #6.
+        :alpha_observation => 01/100, 
+        :max_depth => 10,
+        :criterion=>CPOMDPExperiments.POMCPOW.MaxUCB(c))
+    cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=100.);
+    λ=λ_test)
+    exp = LightExperimentResults(nsims)
+    @showprogress 1 @distributed for i in 1:nsims
+        solver = CPOMDPExperiments.POMCPOWSolver(;kwargs..., 
+            rng=Random.MersenneTwister(i), 
+        )
+
+        updater = CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, filter_size, solver.rng)
+
+        exp[i] = run_pomdp_simulation(cpomdp, solver, updater;track_history=false)
+        
+    end
+    R_m, C_m, RC_m = mean(exp)
+    R_std, C_std, RC_std = std(exp)
+
+    # with a look cost of 5., a scalarized pomcpow solver gets
+    # (R, C, RC) = (42pm28, 2.8pm1.5, 28pm32). Want to therefore set look_budget to 2.5 and \lambda init to 5. pair this with a constant schedule of 1.
+
 end

@@ -4,6 +4,7 @@ struct SpillpointInjectionCPOMDP{P<:SpillpointInjectionPOMDP,S,A,O} <: Constrain
 end 
 
 # Option 0, amount penalty in POMDP, constraint on steps
+"""
 function SpillpointInjectionCPOMDP(;pomdp::P=SpillpointInjectionPOMDP(
         exited_reward_binary=0., 
         exited_reward_amount=-1000, 
@@ -14,7 +15,7 @@ function SpillpointInjectionCPOMDP(;pomdp::P=SpillpointInjectionPOMDP(
 end
 
 costs(::SpillpointInjectionCPOMDP, s, a, sp) = Float64[(sp.v_exited - s.v_exited) > eps(Float32)]
-
+"""
 
 # Option 1, no penalties in POMDP, constraint on steps
 """
@@ -31,24 +32,26 @@ costs(::SpillpointInjectionCPOMDP, s, a, sp) = Float64[(sp.v_exited - s.v_exited
 """
 
 # Option 2, no penalties in POMDP, constraint on amount
-"""
+
 function SpillpointInjectionCPOMDP(;pomdp::P=SpillpointInjectionPOMDP(
         exited_reward_amount=0.,
-        exited_reward_binary=0., 
+        exited_reward_binary=0.,
+        topsurface_std = 0.01,
         sat_noise_std = 0.01),
     constraint_budget::Float64 = 100., # Discounted amount of escaped gas allowed # FIXME
     ) where {P<:SpillpointInjectionPOMDP}
+    println("hit option 2!")
     return SpillpointInjectionCPOMDP{P, statetype(pomdp), actiontype(pomdp), obstype(pomdp)}(pomdp, constraint_budget)
 end
 
 costs(::SpillpointInjectionCPOMDP, s, a, sp) = [sp.v_exited - s.v_exited]
-"""
+
 
 
 
 costs_limit(p::SpillpointInjectionCPOMDP) = [p.constraint_budget]
 n_costs(::SpillpointInjectionCPOMDP) = 1
-max_volume_diff(p::SpillpointInjectionCPOMDP) = p.pomdp.injection_rates * maximum(p.pomdp.Δt)
+max_volume_diff(p::SpillpointInjectionCPOMDP) = maximum(p.pomdp.injection_rates) * p.pomdp.Δt
 max_reward(p::SpillpointInjectionCPOMDP) = p.pomdp.trapped_reward * max_volume_diff(p)
 min_reward(p::SpillpointInjectionCPOMDP) = minimum(p.pomdp.obs_rewards)
 

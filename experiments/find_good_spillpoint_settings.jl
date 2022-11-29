@@ -3,16 +3,18 @@ using CPOMDPExperiments
 using D3Trees
 using Plots 
 using Random
+using SpillpointPOMDP
+using POMDPTools
 
 ### Find Good Settings
 c = 20.0 
 nu = 0.0
-solver_kwargs = Dict(:tree_queries=>100, #5000,
-        :init_λ => [1000.],
+solver_kwargs = Dict(:tree_queries=>1000, #5000,
+        :init_λ => [1000.0],
         :k_observation => 10.,
         :alpha_observation => 0.3,
         :max_depth => 30,
-        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(100.), # how much to update lambda by        
+        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(10000.), # how much to update lambda by        
         :tree_in_info => true,
         :search_progress_info => true,
         :estimate_value => QMDP_V,
@@ -26,7 +28,7 @@ solver_kwargs = Dict(:tree_queries=>100, #5000,
 max_steps = 25 #100
 λ_test = [0.] #  gets used when running unconstrained problem with scalarized reward
 
-cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=0.01);
+cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=0.);
     λ=λ_test)
 
 solver = CPOMDPExperiments.CPOMCPOWSolver(;solver_kwargs..., 
@@ -40,7 +42,7 @@ updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
         param2state=CPOMDPExperiments.SpillpointPOMDP.params2state,
         N_samples_before_resample=100,
         clampfn=CPOMDPExperiments.SpillpointPOMDP.clamp_distribution,
-        fraction_prior = 0.5,
+        fraction_prior = .5,
         prior=CPOMDPExperiments.SpillpointPOMDP.param_distribution(
             CPOMDPExperiments.initialstate(cpomdp.cpomdp)),
         elite_frac=0.3,
@@ -49,16 +51,31 @@ updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
     ), 
     planner)
 
-hist, R, C, RC = run_cpomdp_simulation(cpomdp, solver, updater, max_steps)
+hist, R, C, RC = run_cpomdp_simulation(cpomdp, solver, updater, max_steps);
+
 
 R
 C[1]
 RC
 
-inchrome(D3Tree(hist[1][:tree]))
+inchrome(D3Tree(hist[end][:tree]))
 
+R
 
-sp = SearchProgress(hist[1])
+hist[1]
+
+ss = [h.s for h in hist]
+as = [h.a for h in hist]
+bs = [h.b for h in hist]
+
+anim = @animate for i=1:length(ss)
+    render(cpomdp.pomdp, ss[i], as[i], belief=bs[i])
+    title!("index: $i")
+end
+
+gif(anim, "test.gif", fps=1)
+
+sp = SearchProgress(hist[end-1])
 
 # can plot values of best actions, taken actions, and lambdas across the search
 plot(sp.v_best)

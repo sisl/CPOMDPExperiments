@@ -33,8 +33,11 @@ function search(p::AbstractCPOMCPPlanner, b, t::AbstractCPOMCPTree, info::Dict)
     start_us = CPUtime_us()
     max_clip = (max_reward(p.problem) - min_reward(p.problem))/(1-discount(p.problem)) ./ p._tau
     #p._lambda = rand(p.rng, t.n_costs) .* max_clip # random initialization
-    p._lambda = zeros(Float64, t.n_costs)
-    
+    if p.solver.init_λ === nothing
+        p._lambda = zeros(Float64, t.n_costs) # start unconstrained
+    else
+        p._lambda = p.solver.init_λ
+    end
     if p.solver.search_progress_info
         info[:lambda] = sizehint!(Vector{Float64}[p._lambda], p.solver.tree_queries)
         info[:v_best] = sizehint!(Float64[], p.solver.tree_queries)

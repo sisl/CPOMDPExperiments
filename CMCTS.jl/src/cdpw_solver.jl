@@ -70,8 +70,11 @@ function search(p::CDPWPlanner, snode::Int, info::Dict)
     start_s = timer()
     max_clip = (max_reward(p.mdp) - min_reward(p.mdp))/(1-discount(p.mdp)) ./ p._tau
     # p._lambda = rand(p.rng, n_costs(p.mdp)) .* max_clip # random initialization
-    p._lambda = zeros(Float64, n_costs(p.mdp))
-
+    if p.solver.init_λ === nothing
+        p._lambda = zeros(Float64, n_costs(p.mdp)) # start unconstrained
+    else
+        p._lambda = p.solver.init_λ
+    end
     if p.solver.search_progress_info
         info[:lambda] = sizehint!(Vector{Float64}[p._lambda], p.solver.n_iterations)
         info[:v_best] = sizehint!(Float64[], p.solver.n_iterations)

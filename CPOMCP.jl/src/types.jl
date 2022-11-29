@@ -84,6 +84,7 @@ Partially Observable Monte Carlo Planning Solver.
     rng::AbstractRNG        = Random.GLOBAL_RNG
     alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
     estimate_value::Any     = RolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
+    init_λ::Union{Nothing,Vector{Float64}} = nothing
 end
 
 
@@ -196,6 +197,7 @@ solve(solver::CPOMCPSolver, pomdp::CPOMDP) = CPOMCPPlanner(solver, pomdp)
     next_action::Any            = RandomActionGenerator(rng)
     alpha_schedule::AlphaSchedule    = InverseAlphaSchedule()
     estimate_value::Any     = RolloutEstimator(RandomSolver(rng)) # (rng; max_depth=50, eps=nothing)
+    init_λ::Union{Nothing,Vector{Float64}} = nothing
 end
 
 

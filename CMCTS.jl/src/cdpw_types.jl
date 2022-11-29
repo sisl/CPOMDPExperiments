@@ -137,6 +137,7 @@ mutable struct CDPWSolver <: AbstractCMCTSSolver
     init_Q::Any
     init_N::Any
     init_Qc::Any
+    init_λ::Union{Nothing,Vector{Float64}}
     next_action::Any
     default_action::Any
     reset_callback::Function
@@ -172,6 +173,7 @@ function CDPWSolver(;depth::Int=10,
                     init_Q::Any=0.0,
                     init_N::Any=0,
                     init_Qc::Any=0.,
+                    init_λ::Union{Nothing,Vector{Float64}}=nothing,
                     next_action::Any=RandomActionGenerator(rng),
                     default_action::Any=ExceptionRethrow(),
                     reset_callback::Function=(mdp, s) -> false,
@@ -179,7 +181,7 @@ function CDPWSolver(;depth::Int=10,
                     timer=() -> 1e-9 * time_ns())
     CDPWSolver(depth, exploration_constant, nu, n_iterations, max_time, k_action, alpha_action, k_state, alpha_state, 
         keep_tree, enable_action_pw, enable_state_pw, check_repeat_state, check_repeat_action, 
-        tree_in_info, search_progress_info, return_best_cost, rng, alpha_schedule, estimate_value, init_Q, init_N, init_Qc, 
+        tree_in_info, search_progress_info, return_best_cost, rng, alpha_schedule, estimate_value, init_Q, init_N, init_Qc, init_λ,
         next_action, default_action, reset_callback, show_progress, timer)
 end
 

@@ -18,7 +18,10 @@ POMDPs.statetype(p::ConstrainMDPWrapper) = POMDPs.statetype(p.mdp)
 POMDPs.actiontype(p::ConstrainMDPWrapper) = POMDPs.actiontype(p.mdp) 
 function POMDPs.gen(m::ConstrainMDPWrapper, s, a, args...)
     nt = POMDPs.gen(m.mdp, s, a, args...)
-    return merge(nt, (;c=costs(m,s,a,nt[:sp])))
+    if :sp in keys(nt)
+        return merge(nt, (;c=costs(m,s,a,nt[:sp])))
+    end
+    return nt
 end
 
 abstract type ConstrainPOMDPWrapper{P,S,A,O} <: CPOMDP{S,A,O} where {P<:POMDP} end
@@ -50,5 +53,8 @@ POMDPs.actiontype(p::ConstrainPOMDPWrapper) = POMDPs.actiontype(p.pomdp)
 POMDPs.obstype(p::ConstrainPOMDPWrapper) = POMDPs.obstype(p.pomdp)
 function POMDPs.gen(m::ConstrainPOMDPWrapper, s, a, args...)
     nt = POMDPs.gen(m.pomdp, s, a, args...)
-    return merge(nt, (;c=costs(m,s,a,nt[:sp], nt[:o])))
+    if :sp in keys(nt)
+        return merge(nt, (;c=costs(m,s,a,nt[:sp], nt[:o])))
+    end
+    return nt
 end

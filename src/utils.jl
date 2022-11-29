@@ -52,6 +52,30 @@ function std(er::Union{LightExperimentResults,ExperimentResults};corrected::Bool
     return stdR, stdC, stdRC
 end
 
+function print_and_save(er::Union{LightExperimentResults,ExperimentResults}, fileloc::String)
+    l = length(er.Rs)
+    mR, mC, mRC = mean(er)
+    stdR, stdC, stdRC = std(er)
+    println("R: $(mR) pm $(stdR ./ l)")
+    println("C: $(mC) pm $(stdC ./ l)")
+    println("RC: $(mRC) pm $(stdRC ./ l)")
+    d = Dict(
+        "R"=>er.Rs, "C"=> er.Cs, "RCs"=>er.RCs
+    )
+    FileIO.save(fileloc,d)
+end
+
+function load_and_print(fileloc::String)
+    d = load(fileloc)
+    er = LightExperimentResults(Rs, Cs, RCs)
+    l = length(er.Rs)
+    mR, mC, mRC = mean(er)
+    stdR, stdC, stdRC = std(er)
+    println("R: $(mR) pm $(stdR ./ l)")
+    println("C: $(mC) pm $(stdC ./ l)")
+    println("RC: $(mRC) pm $(stdRC ./ l)")
+    return er
+end
 
 ### Reward wrapper
 

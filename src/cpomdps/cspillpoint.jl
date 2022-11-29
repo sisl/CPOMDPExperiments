@@ -55,6 +55,16 @@ max_volume_diff(p::SpillpointInjectionCPOMDP) = maximum(p.pomdp.injection_rates)
 max_reward(p::SpillpointInjectionCPOMDP) = p.pomdp.trapped_reward * max_volume_diff(p)
 min_reward(p::SpillpointInjectionCPOMDP) = minimum(p.pomdp.obs_rewards)
 
-QMDP_V(pomdp::SpillpointInjectionPOMDP, s, args...) = 0.1*pomdp.trapped_reward*(
+QMDP_V(pomdp::SpillpointInjectionPOMDP, s::SpillpointInjectionState, args...) = 0.1*pomdp.trapped_reward*(
     CPOMDPExperiments.SpillpointPOMDP.trap_capacity(s.m, s.sr, lb=s.v_trapped, ub=0.3, rel_tol=1e-2, abs_tol=1e-3) - s.v_trapped)
 QMDP_V(cpomdp, args...) = (QMDP_V(cpomdp.pomdp, args...), zeros(Float64, n_costs(cpomdp))) 
+function QMDP_V(p::CPOMDPs.GenerativeBeliefCMDP{P}, s::ParticleFilters.ParticleCollection{S}, args...) where {P<:SpillpointInjectionCPOMDP, S<:SpillpointInjectionState}
+    V = 0.
+    ws = weights(s)
+    for (part, w) in zip(particles(s),ws)
+        V .+= QMDP_V(p.cpomdp, part, args...)[1] * w
+    end
+    V ./= sum(ws)
+    return (V, zeros(Float64, n_costs(p.cpomdp))) # replaces old weight_sum(particle collections) that was 1 
+
+end

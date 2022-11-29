@@ -5,13 +5,14 @@ using Infiltrator
 using ProgressMeter
 using Parameters
 using POMDPGifs
-using Cairo
+# using Cairo
 using ParticleFilters
 using LinearAlgebra
 using Plots
 import Statistics
 using Random
 using Distributed
+using FileIO
 
 using POMDPs
 using POMDPTools
@@ -56,6 +57,8 @@ export
     SoftConstraintPOMDPWrapper,
     LightExperimentResults,
     ExperimentResults,
+    print_and_save,
+    load_and_print,
     mean,
     std,
     zero_V,

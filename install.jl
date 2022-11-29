@@ -50,6 +50,13 @@ Pkg.add("Parameters")
 Pkg.add("ProgressMeter")
 #Pkg.add("OrderedCollections")
 Pkg.add("Revise")
+Pkg.add("Distributed")
+Pkg.add("FileIO")
+Pkg.add("JLD2")
+Pkg.add("LaTeXStrings")
+Pkg.add("Polynomials")
+Pkg.add("Random")
+Pkg.add("Statistics")
 
 # POMDP things. 
 Pkg.add("POMDPs")

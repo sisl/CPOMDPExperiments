@@ -5,7 +5,7 @@ using ProgressMeter
 using Distributed
 using Random
 
-nsims = 5
+nsims = 10
 run = [true, true, true] #(pomcpow, pomcp, pft-dpw)
 
 cpomdp = SoftConstraintPOMDPWrapper(SpillpointInjectionCPOMDP(constraint_budget=0.);λ=[1000.])

@@ -5,7 +5,7 @@ using ProgressMeter
 using Distributed
 using Random
 
-nsims = 50
+nsims = 100
 run = [true, true, true] #(pomcpow, pomcp, pft-dpw)
 
 cpomdp = SoftConstraintPOMDPWrapper(CLightDarkNew(cost_budget=0.1);λ=[1.])

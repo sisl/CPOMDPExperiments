@@ -124,39 +124,58 @@ end
 
 function run_lambda_experiments(lambdas::Vector{Float64},
     p::ConstrainPOMDPWrapper, 
-    psolver, psolver_kwargs, csolver, csolver_kwargs;
-    nsims::Int=10)
+    psolver, psolver_kwargs, csolver, csolver_kwargs, cup_wrapper;
+    nsims::Int=10,filter_size::Int=Int(1e4), max_steps::Int=100,run_cpomdps::Bool=true)
     
     le = LambdaExperiments(lambdas;nsims=nsims)
-
+    cp_exp = LightExperimentResults(nsims)
+    cp_exp_minC = LightExperimentResults(nsims)
+    p_exp = [LightExperimentResults(nsims) for _ in 1:length(lambdas)]
     for (i,λ) in enumerate(lambdas)
         
         problem = SoftConstraintPOMDPWrapper(p,λ=[λ])
 
         # run on CPOMDP on i=1
-        if i == 1
-            cp_exp = ExperimentResults(nsims)
-            for j in 1:nsims
+        if run_cpomdps && i == 1
+            @showprogress 1 @distributed for j in 1:nsims
                 cpomdp_solver = csolver(;csolver_kwargs...,rng=MersenneTwister(j))
-                cp_exp[j] = run_cpomdp_simulation(problem,cpomdp_solver)
+                up(planner) = cup_wrapper(
+                        ParticleFilters.BootstrapFilter(problem, filter_size, cpomdp_solver.rng), 
+                    planner)
+                cp_exp[j] = run_cpomdp_simulation(problem,cpomdp_solver,up,max_steps)
             end
             R_m, C_m, RC_m = mean(cp_exp)
             R_std, C_std, RC_std = std(cp_exp)
-            le.R_CPOMDP = Dist(R_m,R_std)
-            le.C_CPOMDP = Dist(C_m[1],C_std[1])
+            le.R_CPOMDP = Dist(R_m,R_std/sqrt(nsims))
+            le.C_CPOMDP = Dist(C_m[1],C_std[1]/sqrt(nsims))
+
+            # best cost propagation
+            @showprogress 1 @distributed for j in 1:nsims
+                cpomdp_solver = csolver(;csolver_kwargs...,rng=MersenneTwister(j),return_best_cost=true)
+                up(planner) = cup_wrapper(
+                        ParticleFilters.BootstrapFilter(problem, filter_size, cpomdp_solver.rng), 
+                    planner)
+                cp_exp_minC[j] = run_cpomdp_simulation(problem,cpomdp_solver,up,max_steps)
+            end
+            R_m, C_m, RC_m = mean(cp_exp_minC)
+            R_std, C_std, RC_std = std(cp_exp_minC)
+            le.R_CPOMDP_minC = Dist(R_m,R_std/sqrt(nsims))
+            le.C_CPOMDP_minC = Dist(C_m[1],C_std[1]/sqrt(nsims))
+
         end
 
         # run POMDP
-        p_exp = ExperimentResults(nsims)
-        for j in 1:nsims
+        
+        @showprogress 1 @distributed for j in 1:nsims
             pomdp_solver = psolver(;psolver_kwargs...,rng=MersenneTwister(j))
-            p_exp[j] = run_pomdp_simulation(problem,pomdp_solver)
+            up= ParticleFilters.BootstrapFilter(problem, filter_size, pomdp_solver.rng)
+            p_exp[i][j] = run_pomdp_simulation(problem,pomdp_solver,up,max_steps)
         end
-        R_m, C_m, RC_m = mean(p_exp)
-        R_std, C_std, RC_std = std(p_exp)
-        le.Rs[i] = Dist(R_m,R_std)
-        le.Cs[i] = Dist(C_m[1],C_std[1])
-        le.RCs[i] = Dist(RC_m,RC_std)
+        R_m, C_m, RC_m = mean(p_exp[i])
+        R_std, C_std, RC_std = std(p_exp[i])
+        le.Rs[i] = Dist(R_m, R_std/sqrt(nsims))
+        le.Cs[i] = Dist(C_m[1], C_std[1]/sqrt(nsims))
+        le.RCs[i] = Dist(RC_m, RC_std/sqrt(nsims))
     end
     return le
 end

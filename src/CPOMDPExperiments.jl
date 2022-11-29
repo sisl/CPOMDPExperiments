@@ -11,6 +11,7 @@ using LinearAlgebra
 using Plots
 import Statistics
 using Random
+using Distributed
 
 using POMDPs
 using POMDPTools
@@ -53,13 +54,13 @@ include("cpomdps/cspillpoint.jl")
 export
     plot_lightdark_beliefs,
     SoftConstraintPOMDPWrapper,
+    LightExperimentResults,
     ExperimentResults,
     mean,
     std,
     zero_V,
     QMDP_V,
     LambdaExperiments,
-    plot_lambdas,
     SearchProgress
 include("utils.jl") 
 

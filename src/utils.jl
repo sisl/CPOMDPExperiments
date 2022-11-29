@@ -1,5 +1,25 @@
 ### Experiment Results
 
+mutable struct LightExperimentResults
+    Rs::Vector{Float64}
+    Cs::Vector{Vector{Float64}}
+    RCs::Vector{Float64}
+end
+
+LightExperimentResults(num::Int) = LightExperimentResults(
+    Array{Float64}(undef,num),
+    Array{Vector{Float64}}(undef,num),
+    Array{Float64}(undef,num),
+    )
+
+Base.getindex(X::LightExperimentResults, i::Int)	= (X.Rs[i],X.Cs[i],X.RCs[i])
+
+function Base.setindex!(X::LightExperimentResults, v::Tuple{Vector{NamedTuple},Float64,Vector{Float64},Float64}, i::Int)
+    X.Rs[i] = v[2]
+    X.Cs[i] = v[3]
+    X.RCs[i] = v[4]
+end
+
 mutable struct ExperimentResults
     hists::Vector{Vector{NamedTuple}}
     Rs::Vector{Float64}
@@ -23,9 +43,9 @@ function Base.setindex!(X::ExperimentResults, v::Tuple{Vector{NamedTuple},Float6
     X.RCs[i] = v[4]
 end
 
-mean(er::ExperimentResults) = Statistics.mean(er.Rs), Statistics.mean(er.Cs), Statistics.mean(er.RCs)
+mean(er::Union{LightExperimentResults,ExperimentResults}) = Statistics.mean(er.Rs), Statistics.mean(er.Cs), Statistics.mean(er.RCs)
 
-function std(er::ExperimentResults;corrected::Bool=false)
+function std(er::Union{LightExperimentResults,ExperimentResults};corrected::Bool=false)
     stdR = Statistics.std(er.Rs;corrected=corrected)
     stdC = Statistics.std(er.Cs;corrected=corrected)
     stdRC = Statistics.std(er.RCs;corrected=corrected)
@@ -99,6 +119,8 @@ mutable struct LambdaExperiments
     
     R_CPOMDP::Union{Dist,Nothing}
     C_CPOMDP::Union{Dist,Nothing}
+    R_CPOMDP_minC::Union{Dist,Nothing}
+    C_CPOMDP_minC::Union{Dist,Nothing}
 end
 
 LambdaExperiments(lambdas::Vector{Float64};nsims::Int=10) = LambdaExperiments(
@@ -107,7 +129,7 @@ LambdaExperiments(lambdas::Vector{Float64};nsims::Int=10) = LambdaExperiments(
     Array{Dist}(undef, length(lambdas)),
     Array{Dist}(undef, length(lambdas)),
     Array{Dist}(undef, length(lambdas)),
-    nothing, nothing
+    nothing, nothing, nothing, nothing
 )
     
 
@@ -135,23 +157,6 @@ function plot_lightdark_beliefs(hist::Vector{NamedTuple},saveloc::Union{String,N
     scatter(xpts, ypts)
     scatter!(1:length(states), states)
     if !(saveloc == nothing)
-        savefig(saveloc)
-    end
-end
-
-function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=nothing,
-    saveloc::Union{String,Nothing}=nothing)
-
-    plot([i.mean for i in le.Cs], [i.mean for i in le.Rs], label="POMDP Pareto Frontier")
-    scatter!([le.C_CPOMDP.mean],[le.R_CPOMDP.mean],label="CPOMDP Solution")
-    
-    xlabel!("V_C")
-    ylabel!("V_R")
-
-    if !(target_cost===nothing)
-        vline!([target_cost],label="target_cost")
-    end
-    if !(saveloc===nothing)
         savefig(saveloc)
     end
 end

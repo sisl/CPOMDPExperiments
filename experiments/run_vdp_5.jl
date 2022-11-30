@@ -31,6 +31,7 @@ k_a_pft = 20.
 alpha_a_pft = 1/25.
 c_pft = 70.0
 
+max_steps = 25
 
 if run[3] # PFT
     kwargs = Dict(

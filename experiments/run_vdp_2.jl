@@ -24,7 +24,7 @@ asched = 0.01
 update_filter_size = Int(1e4)
 pf_filter_size = 10
 init_lam = [5.]
-
+max_steps = 25
 
 
 if run[3] # PFT

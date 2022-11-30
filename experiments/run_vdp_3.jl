@@ -5,7 +5,7 @@ using ProgressMeter
 using Distributed
 using Random
 
-nsims = 50
+nsims = 25
 run = [true, true, true] #(pomcpow, pomcp, pft-dpw)
 
 cpomdp = SoftConstraintPOMDPWrapper(CVDPTagPOMDP(look_budget=2.5);λ=[5.])
@@ -26,61 +26,7 @@ pf_filter_size = 10
 init_lam = [5.]
 
 
-if run[1] # POMCPOW
 
-    kwargs = Dict(
-        :tree_queries=>tree_queries, 
-        :k_observation => k_observation, 
-        :alpha_observation => alpha_observation, 
-        :k_action => k_action,
-        :alpha_action => alpha_action,
-        :check_repeat_obs => false,
-        :check_repeat_act => false,
-        :max_depth => max_depth,
-        :criterion=>CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
-        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(asched),
-        :init_λ=>init_lam,
-        :estimate_value => zero_V,
-    )
-    exp1 = LightExperimentResults(nsims)
-    @showprogress 1 @distributed for i = 1:nsims
-        Random.seed!(i)
-        solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., rng = MersenneTwister(i))
-        updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
-            CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, update_filter_size, solver.rng), 
-            planner)
-        exp1[i] = run_cpomdp_simulation(cpomdp, solver, updater, max_steps;track_history=false)
-    end
-    print_and_save(exp1,"results/vdp_pomcpow_$(nsims)sims_3.jld2")
-end
-
-if run[2] # POMCP
-    kwargs = Dict(
-        :tree_queries=>pft_tree_queries, # POMCP trash anyway, keep small 
-        :k_observation => k_observation, 
-        :alpha_observation => alpha_observation, 
-        :k_action => k_action,
-        :alpha_action => alpha_action,
-        :check_repeat_obs => false,
-        :check_repeat_act => false,
-        :max_depth => max_depth,
-        :c=>c,
-        :nu=>nu, 
-        :alpha_schedule => CPOMDPExperiments.CPOMCP.ConstantAlphaSchedule(asched),
-        :init_λ=>init_lam,
-        :estimate_value => zero_V,
-    )
-    exp2 = LightExperimentResults(nsims)
-    @showprogress 1 @distributed for i = 1:nsims
-        Random.seed!(i)
-        solver = CPOMDPExperiments.CPOMCPDPWSolver(;kwargs..., rng = MersenneTwister(i))
-        updater(planner) = CPOMDPExperiments.CPOMCP.CPOMCPBudgetUpdateWrapper(
-            CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, update_filter_size, solver.rng), 
-            planner)
-        exp2[i] = run_cpomdp_simulation(cpomdp, solver, updater, max_steps;track_history=false)
-    end
-    print_and_save(exp2,"results/vdp_pomcpdpw_$(nsims)sims_3.jld2")
-end
 
 if run[3] # PFT
     kwargs = Dict(
@@ -113,4 +59,60 @@ if run[3] # PFT
         exp3[i] = run_cpomdp_simulation(cpomdp, solver, updater, max_steps;track_history=false)
     end
     print_and_save(exp3,"results/vdp_pft_$(nsims)sims_3.jld2")
+end
+
+if run[1] # POMCPOW
+
+    kwargs = Dict(
+        :tree_queries=>tree_queries, 
+        :k_observation => k_observation, 
+        :alpha_observation => alpha_observation, 
+        :k_action => k_action,
+        :alpha_action => alpha_action,
+        :check_repeat_obs => false,
+        :check_repeat_act => false,
+        :max_depth => max_depth,
+        :criterion=>CPOMDPExperiments.CPOMCPOW.MaxCUCB(c, nu), 
+        :alpha_schedule => CPOMDPExperiments.CPOMCPOW.ConstantAlphaSchedule(asched),
+        :init_λ=>init_lam,
+        :estimate_value => zero_V,
+    )
+    exp1 = LightExperimentResults(nsims)
+    @showprogress 1 for i = 1:nsims
+        Random.seed!(i)
+        solver = CPOMDPExperiments.CPOMCPOWSolver(;kwargs..., rng = MersenneTwister(i))
+        updater(planner) = CPOMDPExperiments.CPOMCPOW.CPOMCPOWBudgetUpdateWrapper(
+            CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, update_filter_size, solver.rng), 
+            planner)
+        exp1[i] = run_cpomdp_simulation(cpomdp, solver, updater, max_steps;track_history=false)
+    end
+    print_and_save(exp1,"results/vdp_pomcpow_$(nsims)sims_3.jld2")
+end
+
+if run[2] # POMCP
+    kwargs = Dict(
+        :tree_queries=>pft_tree_queries, # POMCP trash anyway, keep small 
+        :k_observation => k_observation, 
+        :alpha_observation => alpha_observation, 
+        :k_action => k_action,
+        :alpha_action => alpha_action,
+        :check_repeat_obs => false,
+        :check_repeat_act => false,
+        :max_depth => max_depth,
+        :c=>c,
+        :nu=>nu, 
+        :alpha_schedule => CPOMDPExperiments.CPOMCP.ConstantAlphaSchedule(asched),
+        :init_λ=>init_lam,
+        :estimate_value => zero_V,
+    )
+    exp2 = LightExperimentResults(nsims)
+    @showprogress 1 for i = 1:nsims
+        Random.seed!(i)
+        solver = CPOMDPExperiments.CPOMCPDPWSolver(;kwargs..., rng = MersenneTwister(i))
+        updater(planner) = CPOMDPExperiments.CPOMCP.CPOMCPBudgetUpdateWrapper(
+            CPOMDPExperiments.ParticleFilters.BootstrapFilter(cpomdp, update_filter_size, solver.rng), 
+            planner)
+        exp2[i] = run_cpomdp_simulation(cpomdp, solver, updater, max_steps;track_history=false)
+    end
+    print_and_save(exp2,"results/vdp_pomcpdpw_$(nsims)sims_3.jld2")
 end

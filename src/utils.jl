@@ -223,6 +223,8 @@ end
 
 zero_V(p::POMDP, args...) = 0.
 zero_V(p::CPOMDP, args...) = (0.0, zeros(Float64, n_costs(p)))
+zero_V(p::MDP, args...) = 0.
+zero_V(p::CMDP, args...) = (0.0, zeros(Float64, n_costs(p)))
 QMDP_V(args...) = zero_V(args...) #default
 function QMDP_V(p::SoftConstraintPOMDPWrapper, args...) 
     V, C = QMDP_V(p.cpomdp, args...)

@@ -1,6 +1,5 @@
 using Revise
 using CPOMDPExperiments
-using D3Trees
 using Plots 
 using Infiltrator
 using LaTeXStrings
@@ -71,10 +70,13 @@ function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=
     y_stds = [i.std for i in le.Rs]
     p = sortperm(x)
 
-    f=scatter(x[p],y[p],xerror=x_stds[p], yerror=y_stds[p], label="POMCPOW(λ)", legend=:bottomright) 
+    f=scatter(x[p],y[p],xerror=x_stds[p], yerror=y_stds[p], 
+        label="POMCPOW(λ)", legend=:bottomright,
+        xguidefontsize=13, yguidefontsize=13, legendfontsize=12) 
     if !(le.C_CPOMDP===nothing)
         scatter!([le.C_CPOMDP.mean],[le.R_CPOMDP.mean],
-            xerror=[le.C_CPOMDP.std], yerror=[le.R_CPOMDP.std],label="CPOMDPOW")
+            xerror=[le.C_CPOMDP.std], yerror=[le.R_CPOMDP.std],
+            markershape=:utriangle, markersize=6, label="CPOMDPOW")
     end
     
     title!("Constrained LightDark Pareto Frontier")
@@ -93,26 +95,6 @@ function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=
     end
 end
 
-function save_le(le::LambdaExperiments,saveloc::String)
-    d = Dict(
-        "lambdas"=>le.λs,
-        "POMDP_C_mean"=>[i.mean for i in le.Cs],
-        "POMDP_C_std"=>[i.std for i in le.Cs],
-        "POMDP_R_mean"=>[i.mean for i in le.Rs],
-        "POMDP_R_std"=>[i.std for i in le.Rs] ,
-        "CPOMDP_C_mean"=> !(le.C_CPOMDP===nothing) ? le.C_CPOMDP.mean : nothing,
-        "CPOMDP_C_std"=> !(le.C_CPOMDP===nothing) ? le.C_CPOMDP.std : nothing,
-        "CPOMDP_R_mean"=> !(le.C_CPOMDP===nothing) ? le.R_CPOMDP.mean : nothing,
-        "CPOMDP_R_std"=> !(le.C_CPOMDP===nothing) ? le.R_CPOMDP.std : nothing,
-        "CPOMDP_minC_C_mean"=> !(le.C_CPOMDP_minC===nothing) ? le.C_CPOMDP_minC.mean : nothing,
-        "CPOMDP_minC_C_std"=> !(le.C_CPOMDP_minC===nothing) ? le.C_CPOMDP_minC.std : nothing,
-        "CPOMDP_minC_R_mean"=> !(le.C_CPOMDP_minC===nothing) ? le.R_CPOMDP_minC.mean : nothing,
-        "CPOMDP_minC_R_std"=> !(le.C_CPOMDP_minC===nothing) ? le.R_CPOMDP_minC.std : nothing,
-        )
-
-    save(saveloc,d)
-end
-
-plot_lambdas(le;target_cost=0.1,saveloc="figs/ld_lambdas.pdf")
+plot_lambdas(le;target_cost=0.1,saveloc="results/pareto.pdf")
    
-save_le(le,"figs/pareto_info.jld2")
+save_le(le,"results/pareto_info.jld2")

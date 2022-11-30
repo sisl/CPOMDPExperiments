@@ -156,6 +156,42 @@ LambdaExperiments(lambdas::Vector{Float64};nsims::Int=10) = LambdaExperiments(
     nothing, nothing, nothing, nothing
 )
     
+function save_le(le::LambdaExperiments,saveloc::String)
+    d = Dict(
+        "lambdas"=>le.λs,
+        "POMDP_C_mean"=>[i.mean for i in le.Cs],
+        "POMDP_C_std"=>[i.std for i in le.Cs],
+        "POMDP_R_mean"=>[i.mean for i in le.Rs],
+        "POMDP_R_std"=>[i.std for i in le.Rs] ,
+        "CPOMDP_C_mean"=> !(le.C_CPOMDP===nothing) ? le.C_CPOMDP.mean : nothing,
+        "CPOMDP_C_std"=> !(le.C_CPOMDP===nothing) ? le.C_CPOMDP.std : nothing,
+        "CPOMDP_R_mean"=> !(le.C_CPOMDP===nothing) ? le.R_CPOMDP.mean : nothing,
+        "CPOMDP_R_std"=> !(le.C_CPOMDP===nothing) ? le.R_CPOMDP.std : nothing,
+        "CPOMDP_minC_C_mean"=> !(le.C_CPOMDP_minC===nothing) ? le.C_CPOMDP_minC.mean : nothing,
+        "CPOMDP_minC_C_std"=> !(le.C_CPOMDP_minC===nothing) ? le.C_CPOMDP_minC.std : nothing,
+        "CPOMDP_minC_R_mean"=> !(le.C_CPOMDP_minC===nothing) ? le.R_CPOMDP_minC.mean : nothing,
+        "CPOMDP_minC_R_std"=> !(le.C_CPOMDP_minC===nothing) ? le.R_CPOMDP_minC.std : nothing,
+        )
+
+    FileIO.save(saveloc,d)
+end
+
+function load_le(saveloc::String)
+    d = load(saveloc)
+    
+    λs = d["lambdas"]
+    nsims = 0
+    Rs= Dist[Dist(m,s) for (m,s) in zip(d["POMDP_R_mean"],d["POMDP_R_std"])]
+    Cs= Dist[Dist(m,s) for (m,s) in zip(d["POMDP_C_mean"],d["POMDP_C_std"])]
+    RCs = Dist[]
+    R_CPOMDP = (d["CPOMDP_C_mean"]===nothing) ? nothing : Dist(d["CPOMDP_R_mean"],d["CPOMDP_R_std"])
+    C_CPOMDP = (d["CPOMDP_C_mean"]===nothing) ? nothing : Dist(d["CPOMDP_C_mean"],d["CPOMDP_C_std"])
+    R_CPOMDP_minC = (d["CPOMDP_minC_C_mean"]===nothing) ? nothing : Dist(d["CPOMDP_minC_R_mean"],d["CPOMDP_minC_R_std"])
+    C_CPOMDP_minC = (d["CPOMDP_minC_C_mean"]===nothing) ? nothing : Dist(d["CPOMDP_minC_C_mean"],d["CPOMDP_minC_C_std"])
+
+    return LambdaExperiments(λs, nsims, Rs, Cs, RCs, 
+        R_CPOMDP,C_CPOMDP, R_CPOMDP_minC, C_CPOMDP_minC)
+end
 
 ### Other utils 
 

@@ -64,6 +64,7 @@ export
     zero_V,
     QMDP_V,
     LambdaExperiments,
+    save_le, load_le,
     SearchProgress
 include("utils.jl") 
 

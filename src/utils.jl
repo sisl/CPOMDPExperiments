@@ -67,7 +67,7 @@ end
 
 function load_and_print(fileloc::String)
     d = load(fileloc)
-    er = LightExperimentResults(Rs, Cs, RCs)
+    er = LightExperimentResults(d["R"], d["C"], d["RCs"])
     l = length(er.Rs)
     mR, mC, mRC = mean(er)
     stdR, stdC, stdRC = std(er)

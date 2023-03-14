@@ -71,24 +71,24 @@ function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=
     p = sortperm(x)
 
     f=scatter(x[p],y[p],xerror=x_stds[p], yerror=y_stds[p], 
-        label="POMCPOW(λ)", legend=:bottomright,
+        label=L"\textrm{POMCPOW}(\lambda)", legend=:bottomright,
         xguidefontsize=13, yguidefontsize=13, legendfontsize=12) 
     if !(le.C_CPOMDP===nothing)
         scatter!([le.C_CPOMDP.mean],[le.R_CPOMDP.mean],
             xerror=[le.C_CPOMDP.std], yerror=[le.R_CPOMDP.std],
-            markershape=:utriangle, markersize=6, label="CPOMDPOW")
+            markershape=:utriangle, markersize=6, label=L"\textrm{CPOMCPOW}")
     end
     
-    title!("Constrained LightDark Pareto Frontier")
+    title!(L"\textrm{Constrained~LightDark~Pareto~Frontier}")
     xlabel!(L"V_{C}")
     ylabel!(L"V_{R}")
 
     if !(target_cost===nothing)
-        vline!([target_cost],label="Cost Constraint",linecolor=:black, linestyle=:dash)
+        vline!([target_cost],label=L"\textrm{Cost~Constraint}",linecolor=:black, linestyle=:dash, linewidth=3)
     end
 
     p_hull = get_hull(x,y,p)
-    plot!(x[p_hull].-.01,y[p_hull].+ 1,linecolor=:red, linewidth=4,label="POMCPOW Pareto Frontier")
+    plot!(x[p_hull].-.01,y[p_hull].+ 1,linecolor=:red, linewidth=4,label=L"\textrm{POMCPOW~Pareto~Frontier}")
     
     if !(saveloc===nothing)
         savefig(f,saveloc)

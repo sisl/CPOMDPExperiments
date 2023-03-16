@@ -76,7 +76,7 @@ function plot_lambdas(le::LambdaExperiments;target_cost::Union{Float64,Nothing}=
     if !(le.C_CPOMDP===nothing)
         scatter!([le.C_CPOMDP.mean],[le.R_CPOMDP.mean],
             xerror=[le.C_CPOMDP.std], yerror=[le.R_CPOMDP.std],
-            markershape=:utriangle, markersize=6, label=L"\textrm{CPOMCPOW}")
+            markershape=:utriangle, markersize=6, label=L"\textrm{CPOMCPOW}", markercolor=:black)
     end
     
     title!(L"\textrm{Constrained~LightDark~Pareto~Frontier}")

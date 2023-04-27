@@ -6,7 +6,9 @@ To install, in a Julia REPL:
 
 1. Activate the local environment with `] activate .` 
 
-2. Install from the Manifest using `] instantiate`
+2. Develop the constrained solver packages with `include("develop.jl")`
+
+3. Install remaining dependencies from the Manifest using `] instantiate`
 
 To run experiments in the installed environment, include an experiment file `julia --project=. [filepath]`. Experiment files are
 

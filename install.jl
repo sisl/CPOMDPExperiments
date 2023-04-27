@@ -1,78 +1,21 @@
 using Pkg
 Pkg.activate(".")
-packages = [
-    # Misc github example
-    # PackageSpec(url="https://github.com/sisl/AdversarialDriving.jl"),
+println("Running install file")
 
-    # [deps] CPOMDPs.jl
-    PackageSpec(url=joinpath(@__DIR__, "CPOMDPs.jl")),
-
-    # [deps] CPOMCP.jl
-    PackageSpec(url=joinpath(@__DIR__, "CPOMCP.jl")),
-
-    # [deps] CMCTS.jl
-    PackageSpec(url=joinpath(@__DIR__, "CMCTS.jl")),
-
-    # [deps] CPOMCPOW.jl
-    PackageSpec(url=joinpath(@__DIR__, "CPOMCPOW.jl")),
-
-    # [deps] CPOMDPExperiments.jl
-    # PackageSpec(url=joinpath(@__DIR__)),
+github_packages = [
+    PackageSpec(url="https://github.com/jamgochiana/POMCPOW.jl", rev="1ba776a77eb887ab412bad1df85915283252b531"),
+    PackageSpec(url="https://github.com/JuliaPOMDP/RockSample.jl", rev="4f8112b975d71c59ee6b67721bb1d41c06ad1334"),
+    PackageSpec(url="https://github.com/jamgochiana/VDPTag2.jl", rev="53b08f5279b0d680c8741265ba1361aedaac1278"),
+    PackageSpec(url="https://github.com/sisl/SpillpointPOMDP.jl", rev="976d171d370046f9991ce47d939c9256659a3404")
 ]
+println("Adding external packages")
+Pkg.add(github_packages)
 
-ci = haskey(ENV, "CI") && ENV["CI"] == "true"
-
-if ci
-    # remove "own" package when on CI
-    pop!(packages)
-end
-
-# Run dev altogether
-# This is important that it's run together so there
-# are no "expected pacakge X to be registered" errors.
-Pkg.develop(packages)
-
-# if ci
-#    # pytorch does not work with 3.9
-#    pkg"add Conda"
-#    using Conda
-#    Conda.add("python=3.7.5")
-#    Conda.add("pytorch")
-# end
-
-Pkg.add("D3Trees")
-Pkg.add("Plots")
-Pkg.add("LinearAlgebra")
-#Pkg.add("BSON")
-Pkg.add("Distributions")
-Pkg.add("Infiltrator")
-Pkg.add("Parameters")
-Pkg.add("ProgressMeter")
-#Pkg.add("OrderedCollections")
-Pkg.add("Revise")
-Pkg.add("Distributed")
-Pkg.add("FileIO")
-Pkg.add("JLD2")
-Pkg.add("LaTeXStrings")
-Pkg.add("Polynomials")
-Pkg.add("Random")
-Pkg.add("Statistics")
-
-# POMDP things. 
-Pkg.add("POMDPs")
-Pkg.add("POMDPTools")
-Pkg.add("MCTS")
-Pkg.add("BasicPOMCP")
-Pkg.add(PackageSpec(url="https://github.com/jamgochiana/POMCPOW.jl.git"))
-#Pkg.add("POMCPOW")
-Pkg.add("ParticleFilters")
-Pkg.add("POMDPGifs")
-Pkg.add("Cairo")
-
-# POMDP models
-Pkg.add("POMDPModels")
-Pkg.add(PackageSpec(url="https://github.com/JuliaPOMDP/RockSample.jl"))
-#Pkg.add(PackageSpec(url="https://github.com/zsunberg/VDPTag2.jl"))
-Pkg.add(PackageSpec(url="https://github.com/jamgochiana/VDPTag2.jl"))
-# Pkg.add(PackageSpec(url="https://github.com/sisl/RoombaPOMDPs.git"))
-Pkg.add(PackageSpec(url="https://github.com/sisl/SpillpointPOMDP.jl"))
+dev_packages = [
+    PackageSpec(url=joinpath(@__DIR__, "CPOMDPs.jl")),
+    PackageSpec(url=joinpath(@__DIR__, "CPOMCP.jl")),
+    PackageSpec(url=joinpath(@__DIR__, "CMCTS.jl")),
+    PackageSpec(url=joinpath(@__DIR__, "CPOMCPOW.jl")),
+]
+println("Adding dev packages")
+Pkg.develop(dev_packages)

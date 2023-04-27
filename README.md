@@ -9,6 +9,7 @@ To install, in a Julia REPL:
 2. Install from the Manifest using `] instantiate`
 
 To run experiments in the installed environment, include an experiment file `julia --project=. [filepath]`. Experiment files are
+
     - `experiments/run_*.jl` for the main comparison
     - `experiments/pareto_frontier.jl` to generate the pareto plot
     - `experiments/cost_prop_exp.jl` to compare minimal cost propagation

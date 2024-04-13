@@ -56,9 +56,9 @@ function print_and_save(er::Union{LightExperimentResults,ExperimentResults}, fil
     l = length(er.Rs)
     mR, mC, mRC = mean(er)
     stdR, stdC, stdRC = std(er)
-    println("R: $(mR) pm $(stdR ./ l)")
-    println("C: $(mC) pm $(stdC ./ l)")
-    println("RC: $(mRC) pm $(stdRC ./ l)")
+    println("R: $(mR) pm $(stdR ./ sqrt(l))")
+    println("C: $(mC) pm $(stdC ./ sqrt(l))")
+    println("RC: $(mRC) pm $(stdRC ./ sqrt(l))")
     d = Dict(
         "R"=>er.Rs, "C"=> er.Cs, "RCs"=>er.RCs
     )
@@ -71,9 +71,9 @@ function load_and_print(fileloc::String)
     l = length(er.Rs)
     mR, mC, mRC = mean(er)
     stdR, stdC, stdRC = std(er)
-    println("R: $(mR) pm $(stdR ./ l)")
-    println("C: $(mC) pm $(stdC ./ l)")
-    println("RC: $(mRC) pm $(stdRC ./ l)")
+    println("R: $(mR) pm $(stdR ./ sqrt(l))")
+    println("C: $(mC) pm $(stdC ./ sqrt(l))")
+    println("RC: $(mRC) pm $(stdRC ./ sqrt(l))")
     return er
 end
 
